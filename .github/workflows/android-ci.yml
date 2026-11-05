@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read # 只读代码，不发 Release、不写仓库
+  contents: read
 
 concurrency:
   group: build-${{ github.ref }}
@@ -18,6 +18,11 @@ jobs:
     if: github.ref == 'refs/heads/neo'
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    outputs:
+      version: ${{ steps.version.outputs.name }}
+      apk: ${{ steps.package.outputs.name }}
+      sha: ${{ steps.package.outputs.sha }}
+      cert: ${{ steps.package.outputs.cert }}
     steps:
       - name: 檢出程式碼
         uses: actions/checkout@v4
@@ -188,3 +193,39 @@ jobs:
             app/build/reports/lint-results-*
           if-no-files-found: ignore
           retention-days: 7
+
+  release:
+    name: 發佈簽名 APK
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 下載已驗證的 APK
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.apk }}
+
+      - name: 建立 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          APK: ${{ needs.build.outputs.apk }}
+          APK_SHA256: ${{ needs.build.outputs.sha }}
+          CERT_SHA256: ${{ needs.build.outputs.cert }}
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "$APK_SHA256" "$APK" | sha256sum --check
+          TAG="v${VERSION}"
+          if gh release view "$TAG" --json isDraft,assets --jq ".isDraft == false and any(.assets[]; .name == \"$APK\")" | grep -qx true; then
+            echo "Release $TAG 已發佈"
+            exit 0
+          fi
+          {
+            printf '正式簽名 APK：`%s`\n\n' "$APK"
+            printf -- '- APK SHA-256：`%s`\n' "$APK_SHA256"
+            printf -- '- 簽名憑證 SHA-256：`%s`\n' "$CERT_SHA256"
+          } > "$RUNNER_TEMP/release-notes.md"
+          gh release create "$TAG" "$APK" --target "$GITHUB_SHA" \
+            --title "CarDeck Neo $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
