@@ -15,7 +15,6 @@ import io.github.shaonialife.cardeck.launcher.settings.DisplayPrefs
 import io.github.shaonialife.cardeck.media.NotificationAccess
 import io.github.shaonialife.cardeck.render.CARD_MARGIN_PX
 import io.github.shaonialife.cardeck.render.DASH_GAP_PX
-import io.github.shaonialife.cardeck.render.DASH_HANDLE_TOUCH_PX
 import io.github.shaonialife.cardeck.render.DualDisplayComposer
 import io.github.shaonialife.cardeck.render.OverlayCard
 import io.github.shaonialife.cardeck.shizuku.CarInputClient
@@ -65,11 +64,11 @@ object VirtualLauncher {
     /** 超采样后的应用屏高度上限（px；控制 GPU/内存开销）。 */
     private const val SUPERSAMPLE_MAX_HEIGHT = 1620
 
-    // ---- 仪表盘分屏（拖拽把手）----
+    // ---- 仪表盘固定分屏（保留旧几何辅助接口以兼容坐标调用）----
     // 比例 = tile 主轴长占「可用长度」（应用区主轴 − 两端边距 − 把手宽）的比例。
 
-    /** 默认比例：0.5 恰使把手中心落在应用区正中（见 dashSplitGeom 注释）。 */
-    const val DASH_SPLIT_DEFAULT_FRACTION = 0.5f
+    /** 固定 3:1 地图/媒体比例；旧版用户拖动偏好不再参与运行时布局。 */
+    const val DASH_SPLIT_DEFAULT_FRACTION = 3f / 4f
 
     /** 比例钳制域：任一卡最小占 20%，防拖成一条线（按钮/圆角全挤没）。 */
     const val DASH_SPLIT_MIN_FRACTION = 0.2f
@@ -119,6 +118,20 @@ object VirtualLauncher {
     private fun splitMainLen(): Int = if (dockAtBottom) appAreaHeight else appAreaWidth
 
     val runningApps = LinkedHashSet<ComponentName>()
+
+    fun sessionApps(): List<ComponentName> = synchronized(runningApps) { runningApps.toList().asReversed() }
+
+    private fun recordSessionApp(
+        component: ComponentName,
+        displayId: Int,
+    ) {
+        synchronized(runningApps) {
+            if (displayId <= 0 || displayId !in setOf(appDisplayId, appHiDisplayId, mapDisplayId, mediaDisplayId)) return
+            runningApps.removeAll { it.packageName == component.packageName }
+            runningApps.add(component)
+        }
+        notifyRunningAppsChanged()
+    }
 
     private val runningAppsListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
 
@@ -213,6 +226,143 @@ object VirtualLauncher {
     var mapDisplayId: Int = -1
         private set
 
+    @Volatile
+    var mediaDisplayId: Int = -1
+        private set
+
+    @Volatile
+    var mediaPaneOpen: Boolean = false
+        private set
+
+    private var mediaDisplay: VirtualDisplay? = null
+
+    @Volatile
+    var dashboardPanesSwapped = false
+        private set
+
+    @Volatile
+    private var activeMapComponent: ComponentName? = null
+
+    fun setDashboardPanesSwapped(
+        context: Context,
+        swapped: Boolean,
+    ) {
+        context
+            .getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("dashboardPanesSwapped", swapped)
+            .apply()
+        dashboardPanesSwapped = swapped
+        notifyMapLayout()
+    }
+
+    fun mapPaneBounds(): io.github.shaonialife.cardeck.render.PaneBounds =
+        io.github.shaonialife.cardeck.render.mapPaneBounds(
+            streamWidthPx,
+            appAreaHeight,
+            if (dockAtBottom) 0 else dockWidthPx,
+            dashSplitPos,
+            dockAtBottom,
+            dashboardPanesSwapped,
+        )
+
+    /** 在同一地图屏切换前台任务，保持本次选择；不改持久化默认地图。 */
+    @Synchronized
+    fun switchMap(component: ComponentName): Boolean {
+        val target = mapDisplayId
+        if (target < 0) return false
+        val onTarget = reuseVehicleTask(component.packageName, target)
+        val result = startMapApp(component, target, forceNewTask = !onTarget, extraArgs = "--windowingMode 1")
+        val ok = result.ok && result.output.contains("Starting:", ignoreCase = true)
+        if (ok) {
+            activeMapComponent = component
+            recordSessionApp(component, target)
+        }
+        logSink?.invoke("MAP: ${component.packageName} → 地图区域 display=$target ok=$ok")
+        return ok
+    }
+
+    fun mediaPaneBounds(): io.github.shaonialife.cardeck.render.PaneBounds =
+        io.github.shaonialife.cardeck.render.mediaPaneBounds(
+            streamWidthPx,
+            appAreaHeight,
+            if (dockAtBottom) 0 else dockWidthPx,
+            dashSplitPos,
+            dockAtBottom,
+            dashboardPanesSwapped,
+        )
+
+    fun mediaAppBounds(): io.github.shaonialife.cardeck.render.PaneBounds = mediaPaneBounds()
+
+    @Volatile
+    var dashboardPageAnimating = false
+        private set
+
+    @Volatile
+    var dashboardUserDragging = false
+        private set
+
+    /** 应用第一页右滑时让地图跟随 pager；逻辑模式等落定再提交。 */
+    fun beginDashboardPageDrag() {
+        if (dashboardMode || mapFullscreen) return
+        dashboardUserDragging = true
+        dashboardPageAnimating = true
+        setTileSlide(1f)
+        composer?.setTileLayout(DualDisplayComposer.TileLayout.SPLIT)
+        refreshOverlayCard()
+    }
+
+    fun finishDashboardPageSwitch(dashboard: Boolean) {
+        if (!dashboardPageAnimating) return
+        dashboardUserDragging = false
+        dashboardPageAnimating = false
+        setTileSlide(if (dashboardMode) 0f else 1f)
+        composer?.setTileLayout(
+            when {
+                mapFullscreen -> DualDisplayComposer.TileLayout.FULLSCREEN
+                dashboardMode -> DualDisplayComposer.TileLayout.SPLIT
+                else -> DualDisplayComposer.TileLayout.HIDDEN
+            },
+        )
+        refreshOverlayCard()
+    }
+
+    fun isMediaPaneVisible(): Boolean =
+        mediaPaneOpen &&
+            dashboardMode &&
+            !mapFullscreen &&
+            tileSlideFraction <= 0.01f &&
+            composer?.hasMediaContent() == true
+
+    fun closeMediaPane() {
+        mediaPaneOpen = false
+        composer?.showMediaPane = false
+        notifyMapLayout()
+    }
+
+    /** 只在独立媒体屏启动，不切换全屏应用状态，不搬动地图或桌面任务。 */
+    @Synchronized
+    fun launchMediaApp(component: ComponentName): Boolean {
+        val target = mediaDisplayId
+        if (target < 0) {
+            logSink?.invoke("MEDIA: 媒体屏不可用，保留音乐卡")
+            return false
+        }
+        AppOrientationCompat.awaitPending()
+        val onTarget = reuseVehicleTask(component.packageName, target)
+        val result = startMapApp(component, target, forceNewTask = !onTarget, extraArgs = "--windowingMode 1")
+        val ok = result.ok && result.output.contains("Starting:", ignoreCase = true)
+        if (ok) {
+            mediaPaneOpen = true
+            composer?.showMediaPane = true
+            notifyMapLayout()
+            recordSessionApp(component, target)
+            LetterboxHintController.clear()
+        }
+        logSink?.invoke("MEDIA: ${component.packageName} → 媒体区域 display=$target ok=$ok")
+        return ok
+    }
+
     /** 仪表盘↔桌面滑动进度（0=tile 原位，1=完全滑出）：滑动期间抑制 tile 事件注入。 */
     @Volatile
     var tileSlideFraction: Float = 0f
@@ -225,6 +375,9 @@ object VirtualLauncher {
     }
 
     /** 「显示」设置实时切换目标帧率（合成器未创建时静默——attach 时会从偏好读取）。 */
+    fun isLayoutTransitioning(): Boolean =
+        suppressTouchDuringLayout(dashboardPageAnimating, dashboardUserDragging, composer?.isLayoutTransitioning() == true)
+
     fun setStreamFps(fps: Int) {
         composer?.targetFps = fps
     }
@@ -305,6 +458,7 @@ object VirtualLauncher {
     }
 
     private fun notifyDashboard() {
+        refreshOverlayCard()
         dashboardListeners.forEach { runCatching { it(dashboardMode) } }
     }
 
@@ -320,10 +474,11 @@ object VirtualLauncher {
     }
 
     private fun notifyMapLayout() {
+        refreshOverlayCard()
         mapLayoutListeners.forEach { runCatching { it(mapFullscreen) } }
     }
 
-    /** 地图应用白名单（优先序：车机版高德 → 车机版百度 → 手机高德 → 手机百度 → 腾讯）。 */
+    /** 内置地图优先序；手动指定的其他包也按地图屏路由。 */
     val MAP_PACKAGES_PRIORITY =
         listOf(
             "com.autonavi.amapauto",
@@ -331,9 +486,22 @@ object VirtualLauncher {
             "com.autonavi.minimap",
             "com.baidu.BaiduMap",
             "com.tencent.map",
+            "com.google.android.apps.maps",
+            "com.google.android.apps.mapslite",
+            "com.waze",
+            "com.here.app.maps",
+            "net.osmand",
+            "net.osmand.plus",
+            "app.organicmaps",
+            "com.mapswithme.maps.pro",
+            "com.sygic.aura",
+            "com.tomtom.gplay.navapp",
         )
 
-    fun isMapPackage(packageName: String): Boolean = packageName in MAP_PACKAGES_PRIORITY
+    fun isMapPackage(packageName: String): Boolean =
+        packageName in MAP_PACKAGES_PRIORITY ||
+            packageName == activeMapComponent?.packageName ||
+            appContextRef?.let { DefaultMapPrefs.manualPackage(it) == packageName } == true
 
     /**
      * 已安装的默认地图（用户显式设置优先——DefaultMapPrefs；否则按优先序取
@@ -385,13 +553,40 @@ object VirtualLauncher {
             appDisplayId -> if (appDisplayW > 0) appDisplayW to appDisplayH else null
             appHiDisplayId -> if (appHiDisplayW > 0) appHiDisplayW to appHiDisplayH else null
             mapDisplayId -> if (mapDisplayW > 0) mapDisplayW to mapDisplayH else null
+            mediaDisplayId -> mediaAppBounds().let { it.width to it.height }
             else -> null
         }
 
     /** 挂/摘合成器上的叠加卡片。 */
+    @Volatile
+    private var hintOverlay: OverlayCard? = null
+
+    @Volatile
+    private var notificationOverlay: OverlayCard? = null
+
     fun setOverlayCard(card: OverlayCard?) {
-        composer?.overlayCard = card
+        hintOverlay = card
+        refreshOverlayCard()
     }
+
+    fun setNotificationOverlay(card: OverlayCard?) {
+        notificationOverlay = card
+        refreshOverlayCard()
+    }
+
+    fun isNotificationOverlayVisible(): Boolean = hintOverlay == null && notificationOverlay != null
+
+    fun refreshOverlayCard() {
+        composer?.overlayCard = hintOverlay ?: notificationOverlay ?: MediaReturnControl.card()
+    }
+
+    fun isMediaReturnVisible(): Boolean =
+        hintOverlay == null &&
+            notificationOverlay == null &&
+            dashboardMode &&
+            mediaPaneOpen &&
+            !mapFullscreen &&
+            !dashboardPageAnimating
 
     /** 会话上下文（letterbox 重启后复探要用；未 attach 时为 null）。 */
     fun appContext(): Context? = appContextRef
@@ -424,6 +619,10 @@ object VirtualLauncher {
         if (!AppOrientationCompat.awaitPending()) {
             log("ORIENTATION: ⚠ 覆盖写入未在 6s 内排空——应用可能带着旧方向配置启动（后台写完后首个启动的应用会被杀一次）")
         }
+        dashboardPanesSwapped =
+            context
+                .getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("dashboardPanesSwapped", false)
         val density = densityDpi / 160f
         // dock 栏宽度缩放（「显示」面板 50%–100%，下次连接起效）：厚度像素与 dock 屏
         // 密度**同乘**比例——内容 dp 布局不变、渲染进更少像素，整条 dock（图标/时钟/
@@ -460,13 +659,9 @@ object VirtualLauncher {
             (appWidth / LETTERBOX_TARGET_DP * 160f).toInt().coerceIn(160, 640)
         // 地图屏：按应用区全尺寸创建，分屏/全屏间动态 resize（见 resizeMapDisplay）。
         // tile 尺寸 = SPLIT 绘制矩形，边距统一用契约值 CARD_MARGIN_PX（勿再裸写数字）。
-        // 分屏比例由用户拖动把手调整（持久化偏好）；几何推导集中在 [dashSplitGeom]
+        // 固定 3:1 比例；忽略旧版拖动比例。几何推导集中在 [dashSplitGeom]
         // 纯函数（单测钉死四方一致性）。tile 主轴长（横=宽、竖=高）=比例×可用长度。
-        dashSplitFraction =
-            context
-                .getSharedPreferences("settings", Context.MODE_PRIVATE)
-                .getFloat(PREF_KEY_DASH_SPLIT, DASH_SPLIT_DEFAULT_FRACTION)
-                .let(::clampDashSplitFraction)
+        dashSplitFraction = DASH_SPLIT_DEFAULT_FRACTION
         if (dockAtBottom) {
             val geom = dashSplitGeom(appHeightPx, dashSplitFraction)
             mapTileWidth = appWidth - CARD_MARGIN_PX * 2
@@ -540,7 +735,7 @@ object VirtualLauncher {
                 .fps(context)
         this.composer = composer
         val displaysCreated = arrayOf(false)
-        composer.onSurfacesReady = { dockSurface, appSurface, appHiSurface, mapSurface ->
+        composer.onSurfacesReady = { dockSurface, appSurface, appHiSurface, mapSurface, mediaSurface ->
             // 优先：Shizuku shell 创建受信虚拟屏（VIRTUAL_DISPLAY_FLAG_TRUSTED）——
             // 允许第三方应用的新任务落在该屏；解决「应用内跳转的任务被重定向到手机主屏」。
             var viaService = false
@@ -554,7 +749,8 @@ object VirtualLauncher {
                             it.name == "CarPlayDock" ||
                                 it.name == "CarPlayApp" ||
                                 it.name == "CarPlayAppHi" ||
-                                it.name == "CarPlayMap"
+                                it.name == "CarPlayMap" ||
+                                it.name == "CarPlayMedia"
                         }.forEach { stale ->
                             runCatching { svc!!.releaseDisplay(stale.displayId) }
                                 .onSuccess { log("LAUNCHER: 已释放残留虚拟屏 ${stale.name}#${stale.displayId}") }
@@ -746,6 +942,34 @@ object VirtualLauncher {
                         "map=$mapDisplayId(${mapDisplayW}x$mapDisplayH)——受信屏不可用，已回退应用侧 PUBLIC 屏",
                 )
             }
+            // 媒体屏可选：失败时保留控制卡，不让主会话跟随失败。
+            val mediaBounds = mediaAppBounds()
+            runCatching {
+                if (viaService) {
+                    mediaDisplayId =
+                        svc!!.createDisplay(
+                            "CarPlayMedia",
+                            mediaBounds.width,
+                            mediaBounds.height,
+                            MAP_DISPLAY_DPI,
+                            mediaSurface,
+                            true,
+                        )
+                } else {
+                    val manager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+                    mediaDisplay =
+                        manager.createVirtualDisplay(
+                            "CarPlayMedia",
+                            mediaBounds.width,
+                            mediaBounds.height,
+                            MAP_DISPLAY_DPI,
+                            mediaSurface,
+                            DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC or
+                                DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY,
+                        )
+                    mediaDisplayId = mediaDisplay?.display?.displayId ?: -1
+                }
+            }.onFailure { log("MEDIA: 创建媒体屏失败：${it.message}") }
             displaysCreated[0] = dockDisplayId >= 0 && appDisplayId >= 0
         }
         return try {
@@ -758,6 +982,8 @@ object VirtualLauncher {
                 if (landscapeApp) appHiHeight else 0,
                 appWidth,
                 appHeightPx,
+                mediaAppBounds().width,
+                mediaAppBounds().height,
             )
             // 分屏把手位置推给合成器（覆盖默认中线公式；拖动时 previewDashSplit 持续更新）
             composer.setTileEdgeOverride(dashSplitPos - DASH_GAP_PX / 2f)
@@ -772,7 +998,7 @@ object VirtualLauncher {
             // 而合成器按整幅映射、触摸按未旋转坐标换算 —— 表现为「分辨率变了 +
             // 点击漂移、点不到目标」，退回桌面也仍是旋转态（2026-10-18 实测）。
             // 缩在 letterbox 里（见下方 aspectRatio）才是车机该有的形态。
-            applyIgnoreOrientationRequest(appDisplayId, appHiDisplayId, mapDisplayId)
+            applyIgnoreOrientationRequest(appDisplayId, appHiDisplayId, mapDisplayId, mediaDisplayId)
             // 放宽竖屏应用的 letterbox 窗口（默认窄条 → 手机宽度）；断开时还原（detach）
             Shell.exec("cmd window set-letterbox-style --aspectRatio $LETTERBOX_ASPECT_RATIO")
             log(
@@ -785,11 +1011,16 @@ object VirtualLauncher {
             // （Bad component name），两种写法都让 dock/grid 启动失败、车机黑屏
             // 0fps（2026-10-21 .rd 包实测）。绝对类名取自 Class 引用，随重构自动跟随。
             val selfPkg = context.packageName
+            // 首次画面直接从分屏落定，不能依赖用户按 Home 才启动地图。
+            appContextRef = context.applicationContext
+            dashboardMode = true
+            setTileSlide(0f)
+            composer.setTileLayout(DualDisplayComposer.TileLayout.SPLIT)
             val dockOk = startOn(dockDisplayId, "$selfPkg/${DockActivity::class.java.name}")
             gridDisplayId = if (appHiDisplayId >= 0) appHiDisplayId else appDisplayId
             val gridOk = startOn(gridDisplayId, "$selfPkg/${GridActivity::class.java.name}")
-            appContextRef = context.applicationContext
             log("LAUNCHER: dock=$dockOk grid=$gridOk gridDisplay=$gridDisplayId")
+            if (dockOk && gridOk) prepareDashboardMap()
             // 桌面在超采样屏时默认活动屏 = 超采样屏（启动即显示桌面）
             if (appHiDisplayId >= 0) composer.requestActiveApp(true)
             startShizukuHealer()
@@ -809,6 +1040,10 @@ object VirtualLauncher {
     private var displaysViaService = false
 
     fun detach() {
+        io.github.shaonialife.cardeck.notifications.NotificationBannerController
+            .clear()
+        hintOverlay = null
+        notificationOverlay = null
         ScreenDimmer
             .detach()
         // 还原方向策略（false = 跟随应用请求，系统默认）。
@@ -823,7 +1058,7 @@ object VirtualLauncher {
         // 执行时机：投递后立即释放虚拟屏，但后台任务与释放是并发的——为保证命令
         // 命中的是**尚存活的 displayId**，这里先同步取好 id 字符串并在投递时即排队；
         // 若已被释放（id 失效）命令只会报错，不影响后续会话（下轮创建时会重新设置）。
-        val orientationIds = intArrayOf(appDisplayId, appHiDisplayId, mapDisplayId).filter { it >= 0 }
+        val orientationIds = intArrayOf(appDisplayId, appHiDisplayId, mapDisplayId, mediaDisplayId).filter { it >= 0 }
         if (orientationIds.isNotEmpty()) {
             Bg.run("orientation-cleanup") {
                 orientationIds.forEach { runCatching { setIgnoreOrientationRequest(it, false, verify = false) } }
@@ -837,6 +1072,7 @@ object VirtualLauncher {
                 if (appHiDisplayId >= 0) runCatching { svc.releaseDisplay(appHiDisplayId) }
                 // 地图屏同样由 shell 持有：不释放会在断开后残留（重装后由启动检测兜底发现）
                 if (mapDisplayId >= 0) runCatching { svc.releaseDisplay(mapDisplayId) }
+                if (mediaDisplayId >= 0) runCatching { svc.releaseDisplay(mediaDisplayId) }
             }
             displaysViaService = false
         }
@@ -859,10 +1095,19 @@ object VirtualLauncher {
         appHiDisplay = null
         runCatching { mapDisplay?.release() }
         mapDisplay = null
+        runCatching { mediaDisplay?.release() }
+        mediaDisplay = null
+        mediaDisplayId = -1
+        mediaPaneOpen = false
+        dashboardPageAnimating = false
+        dashboardUserDragging = false
+        activeMapComponent = null
         dockDisplayId = -1
         appDisplayId = -1
         appHiDisplayId = -1
         gridDisplayId = -1
+        synchronized(runningApps) { runningApps.clear() }
+        notifyRunningAppsChanged()
         mapDisplayId = -1
         mapTileWidth = 0
         mapTileHeight = 0
@@ -898,7 +1143,7 @@ object VirtualLauncher {
         if (displayId < 0) return false
         val result =
             Shell.exec(
-                "am start -n $component --display $displayId --windowingMode 1",
+                "am start -n ${component.asShellArgument()} --display $displayId --windowingMode 1",
                 timeoutMs = 8000,
             )
         return result.ok && result.output.contains("Starting:", ignoreCase = true)
@@ -959,20 +1204,28 @@ object VirtualLauncher {
     fun syncDashboard(dashboard: Boolean) {
         val changed = dashboardMode != dashboard
         dashboardMode = dashboard
-        if (changed) notifyDashboard()
+        if (changed) {
+            dashboardPageAnimating = true
+            // 进入时先把地图放到画外；退出时保留地图到整页滑出完毕。
+            if (dashboard) setTileSlide(1f)
+            composer?.setTileLayout(DualDisplayComposer.TileLayout.SPLIT)
+            notifyDashboard()
+        }
         if (dashboard) {
-            Bg.run("dashboard-enter") {
-                ensureMapTask()
-                if (mapFullscreen) setMapFullscreen(false)
-                // 期间用户可能已点开普通应用（launchApp 会置 HIDDEN 并退出仪表盘）：
-                // 复查模式，别把地图层又盖回去
-                if (dashboardMode) {
-                    resizeMapDisplay(fullscreen = false)
-                    composer?.setTileLayout(DualDisplayComposer.TileLayout.SPLIT)
-                }
-            }
-        } else {
+            prepareDashboardMap()
+        } else if (!dashboardPageAnimating) {
             composer?.setTileLayout(DualDisplayComposer.TileLayout.HIDDEN)
+        }
+    }
+
+    private fun prepareDashboardMap() {
+        val target = mapDisplayId
+        if (target < 0) return
+        Bg.run("dashboard-enter") {
+            if (target != mapDisplayId || !dashboardMode) return@run
+            if (mapFullscreen) setMapFullscreen(false)
+            resizeMapDisplay(fullscreen = false)
+            ensureMapTask()
         }
     }
 
@@ -994,9 +1247,13 @@ object VirtualLauncher {
      * 合成器同步切换布局：resize 后地图屏内容即目标区域内容，整幅映射、不再裁剪采样。
      */
     fun setMapFullscreen(fullscreen: Boolean) {
-        if (mapDisplayId < 0 || mapFullscreen == fullscreen) return
+        if (mapDisplayId < 0) return
+        // 从应用页打开全屏地图时，清除仪表盘滑出进度，触控才能命中地图屏。
+        if (fullscreen) setTileSlide(0f)
+        if (mapFullscreen == fullscreen) return
         mapFullscreen = fullscreen
-        resizeMapDisplay(fullscreen)
+        // binder/屏幕配置操作始终串行在后台，快点切换时只应用最新目标。
+        mapResizeExecutor.execute { resizeMapDisplay(mapFullscreen) }
         composer?.setTileLayout(
             if (fullscreen) {
                 DualDisplayComposer.TileLayout.FULLSCREEN
@@ -1024,10 +1281,7 @@ object VirtualLauncher {
      *
      * @param streamPos 把手中心（流像素，顶部原点；横屏 x / 竖屏 y），内部钳制
      */
-    fun previewDashSplit(streamPos: Float) {
-        val clamped = clampDashSplitStream(streamPos) ?: return
-        composer?.setTileEdgeOverride(clamped - DASH_GAP_PX / 2f)
-    }
+    fun previewDashSplit(streamPos: Float) = Unit
 
     /**
      * 松手落定：钳制 → 更新把手位置与 tile 派生尺寸 → 真实 resize 地图屏（含
@@ -1035,31 +1289,7 @@ object VirtualLauncher {
      *
      * @return 钳制后的把手中心（流像素）——UI 据此校正 margin，防显示与状态漂移
      */
-    fun commitDashSplit(streamPos: Float): Float {
-        val clamped = clampDashSplitStream(streamPos) ?: return dashSplitPos
-        val geom =
-            dashSplitGeom(
-                splitMainLen(),
-                (clamped - splitMainOffset() - CARD_MARGIN_PX - DASH_GAP_PX / 2f) / splitUsableLen(),
-            )
-        dashSplitPos = clamped
-        dashSplitFraction = geom.fraction
-        if (dockAtBottom) mapTileHeight = geom.tileLen else mapTileWidth = geom.tileLen
-        composer?.setTileEdgeOverride(clamped - DASH_GAP_PX / 2f)
-        if (!mapFullscreen) resizeMapDisplay(false)
-        notifyMapLayout()
-        appContextRef
-            ?.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            ?.edit()
-            ?.putFloat(PREF_KEY_DASH_SPLIT, dashSplitFraction)
-            ?.apply()
-        logSink?.invoke(
-            "LAUNCHER: 仪表盘分屏落定 ${if (dockAtBottom) "地图高" else "地图宽"}=" +
-                "${if (dockAtBottom) mapTileHeight else mapTileWidth}px（比例 " +
-                String.format("%.2f", dashSplitFraction) + "）",
-        )
-        return clamped
-    }
+    fun commitDashSplit(streamPos: Float): Float = dashSplitPos
 
     /** 当前把手中心换算到应用屏像素（GridActivity 布局用；未 attach 返回 -1）。 */
     fun dashSplitScreenPos(): Float = if (dashSplitPos < 0) -1f else dashSplitPos * gridScale()
@@ -1096,13 +1326,7 @@ object VirtualLauncher {
         x: Float,
         y: Float,
     ): Boolean {
-        if (dashSplitPos < 0 || !dashboardMode || mapFullscreen) return false
-        val half = DASH_HANDLE_TOUCH_PX / 2f
-        return if (dockAtBottom) {
-            y in dashSplitPos - half..dashSplitPos + half
-        } else {
-            x in dashSplitPos - half..dashSplitPos + half
-        }
+        return false // 固定比例，中缝不再有拖动命中区。
     }
 
     /** 流坐标把手中心 → 应用区坐标系偏移（横屏减 dock 宽；竖屏 y 原点即流原点）。 */
@@ -1130,6 +1354,11 @@ object VirtualLauncher {
      * 应用的配置变更/重布局，能免则免）。Shizuku 未绑定或调用失败时保持现尺寸，
      * 合成器整幅映射依旧成立（只是地图 UI 密度与可视区域暂不匹配）。
      */
+    private val mapResizeExecutor =
+        java.util.concurrent.Executors
+            .newSingleThreadExecutor()
+
+    @Synchronized
     private fun resizeMapDisplay(fullscreen: Boolean) {
         val id = mapDisplayId
         if (id < 0) return
@@ -1167,30 +1396,31 @@ object VirtualLauncher {
      * 地图应用之间的切换（高德 ↔ 百度）也在同一块屏上进行，旧任务被清（互斥）。
      */
     private fun launchMapOnMapDisplay(component: ComponentName): Boolean {
+        if (!switchMap(component)) return false
+        dashboardUserDragging = false
+        dashboardPageAnimating = false
         dashboardMode = false
         notifyDashboard()
         setMapFullscreen(true)
-        // 同屏已有其他地图任务时清掉（白名单互斥；默认地图任务保留复用）
-        val ctx = appContextRef
-        val defaultPkg = ctx?.let { defaultMapComponent(it)?.packageName }
-        if (component.packageName != defaultPkg) {
-            taskIdsOnDisplayPkg(component.packageName, mapDisplayId).forEach { taskId ->
-                Shell.exec("am stack remove $taskId", timeoutMs = 4000)
-            }
-        }
-        val result = startMapApp(component, mapDisplayId, forceNewTask = true)
-        val ok = result.ok && result.output.contains("Starting:", ignoreCase = true)
-        logSink?.invoke(
-            "LAUNCH(${component.packageName}): → 地图屏全屏 ok=$ok out=${result.output.take(80)}",
-        )
-        if (ok) {
-            synchronized(runningApps) { runningApps.add(component) }
-            notifyRunningAppsChanged()
-            appContextRef?.let {
-                LetterboxHintController.scheduleProbe(it, "地图启动", displayIdHint = mapDisplayId)
-            }
-        }
-        return ok
+        return true
+    }
+
+    /** singleTask 应用可能忽略启动屏，先把已有车机任务移到目标屏。 */
+    private fun reuseVehicleTask(
+        pkg: String,
+        target: Int,
+    ): Boolean {
+        val tasks = taskIdsByDisplayPkg()
+        if (tasksOf(tasks, pkg, target).isNotEmpty()) return true
+        val sources = listOf(appDisplayId, appHiDisplayId, mapDisplayId, mediaDisplayId)
+        val task =
+            sources
+                .asSequence()
+                .filter { it > 0 && it != target }
+                .flatMap { tasksOf(tasks, pkg, it).asSequence() }
+                .firstOrNull() ?: return false
+        val moved = Shell.exec("am display move-stack $task $target", timeoutMs = 4000)
+        return moved.ok && task in taskIdsOnDisplayPkg(pkg, target)
     }
 
     /** 指定屏上指定包的任务 ID 列表（清屏用）。 */
@@ -1212,12 +1442,14 @@ object VirtualLauncher {
         forceNewTask: Boolean,
         extraArgs: String = "",
     ): Shell.Result {
+        // 地图忽略方向请求只会触发系统直式黑边；启动前完成会话横屏覆盖。
+        if (displayId == mapDisplayId) appContextRef?.let { AppOrientationCompat.prepareMap(it, component.packageName) }
         val suffix =
             (if (forceNewTask) " -f 0x18000000" else "") +
                 (if (extraArgs.isEmpty()) "" else " $extraArgs")
         var last: Shell.Result? = null
         for (target in mapLaunchCandidates(component)) {
-            val result = Shell.exec("am start -n $target --display $displayId$suffix", timeoutMs = 8000)
+            val result = Shell.exec("am start -n ${target.asShellArgument()} --display $displayId$suffix", timeoutMs = 8000)
             val ok = result.ok && result.output.contains("Starting:", ignoreCase = true)
             if (ok) return result
             logSink?.invoke(
@@ -1225,7 +1457,8 @@ object VirtualLauncher {
             )
             last = result
         }
-        return last ?: Shell.exec("am start -n ${component.flattenToShortString()} --display $displayId$suffix", timeoutMs = 8000)
+        return last
+            ?: Shell.exec("am start -n ${component.flattenToShortString().asShellArgument()} --display $displayId$suffix", timeoutMs = 8000)
     }
 
     /**
@@ -1234,18 +1467,67 @@ object VirtualLauncher {
      * 的 shell 命令）——统一从这里取快照复用。
      */
     private fun taskIdsByDisplayPkg(): Map<Int, Map<String, List<String>>> {
-        val dump = Shell.exec("dumpsys activity activities", timeoutMs = 4000).output
-        var current = -1
-        val out = HashMap<Int, HashMap<String, MutableList<String>>>()
-        for (line in dump.lineSequence()) {
-            displayRegex.find(line)?.let { current = it.groupValues[1].toInt() }
-            val task = taskRegex.find(line) ?: continue
-            out
-                .getOrPut(current) { HashMap() }
-                .getOrPut(task.groupValues[2]) { ArrayList() }
-                .add(task.groupValues[1])
+        val dump = Shell.exec("dumpsys -t 3 activity activities", timeoutMs = 4000).output
+        return runCatching { parseTaskDisplays(dump) }.getOrElse {
+            logSink?.invoke("LAUNCHER: 任务快照解析失败 ${it.javaClass.simpleName}")
+            emptyMap()
         }
-        return out
+    }
+
+    /** 后台管理只查看车机任务；读取失败抛错，不能伪装成空列表。 */
+    fun vehicleAppTasks(): Map<String, List<String>> {
+        val result = Shell.exec("dumpsys activity activities", timeoutMs = 4000)
+        check(result.ok && result.output.contains("Display")) {
+            logSink?.invoke("RECENTS: 查询车机任务失败 exit=${result.exitCode}")
+            "Unable to read vehicle tasks"
+        }
+        return vehicleTasks(
+            parseTaskDisplays(result.output),
+            setOf(appDisplayId, appHiDisplayId, mapDisplayId, mediaDisplayId),
+            appContextRef?.packageName.orEmpty(),
+        )
+    }
+
+    /** 重新取真实任务后移除指定车机窗口，不 force-stop 手机进程。后台调用。 */
+    fun closeVehicleApps(packages: Set<String>): Boolean {
+        val requested = packages.intersect(sessionApps().map { it.packageName }.toSet())
+        if (requested.isEmpty()) return true
+        val before = vehicleAppTasks()
+        val mediaPackages = taskIdsByDisplayPkg()[mediaDisplayId]?.keys.orEmpty()
+        requested.flatMap { before[it].orEmpty() }.distinct().forEach { id ->
+            check(id.all(Char::isDigit))
+            Shell.exec("am stack remove $id", timeoutMs = 4000)
+        }
+        val after = vehicleAppTasks()
+        val closed = requested.filter { it !in after }.toSet()
+        synchronized(runningApps) { runningApps.removeAll { it.packageName in closed } }
+        if (activeMapComponent?.packageName in closed) activeMapComponent = null
+        if (closed.any { it in mediaPackages }) closeMediaPane()
+        notifyRunningAppsChanged()
+        return requested.none { it in after }
+    }
+
+    fun currentMapPackage(): String? = activeMapComponent?.packageName
+
+    fun showRecentApps(context: Context) {
+        val display = gridDisplayId.takeIf { it >= 0 } ?: return
+        dashboardUserDragging = false
+        dashboardPageAnimating = false
+        dashboardMode = false
+        mapFullscreen = false
+        notifyDashboard()
+        composer?.setTileLayout(DualDisplayComposer.TileLayout.HIDDEN)
+        composer?.requestActiveApp(display == appHiDisplayId)
+        val options =
+            android.app.ActivityOptions
+                .makeBasic()
+                .apply { launchDisplayId = display }
+        context.startActivity(
+            android.content.Intent(context, RecentAppsActivity::class.java).apply {
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+            options.toBundle(),
+        )
     }
 
     private fun tasksOf(
@@ -1258,6 +1540,7 @@ object VirtualLauncher {
      * 确保默认地图在地图屏：am start 对既有任务=带回前台（状态保留，导航不断），
      * 无任务=新启动。后台线程调用。
      */
+    @Synchronized
     private fun ensureMapTask() {
         if (mapDisplayId < 0) {
             // 诊断（2026-10-18「重装后地图卡不渲染」）：此前静默 return，无法区分
@@ -1271,17 +1554,16 @@ object VirtualLauncher {
                 return
             }
         val component =
-            defaultMapComponent(ctx) ?: run {
+            activeMapComponent?.takeIf { ctx.packageManager.getLaunchIntentForPackage(it.packageName) != null }
+                ?: defaultMapComponent(ctx) ?: run {
                 logSink?.invoke("LAUNCHER: 未找到任何地图应用（白名单内）——地图 tile 空")
                 return
             }
         // 不带 MULTIPLE_TASK：任务已在地图屏时等价于带回前台
-        val result = startMapApp(component, mapDisplayId, forceNewTask = false)
-        logSink?.invoke(
-            "LAUNCHER: 默认地图 ${component.packageName} → 地图屏（display=$mapDisplayId）ok=" +
-                (result.ok && result.output.contains("Starting:", ignoreCase = true)) +
-                (if (!result.ok) " err=${result.output.take(120)}" else ""),
-        )
+        val target = mapDisplayId
+        if (activeMapComponent != component || taskIdsOnDisplayPkg(component.packageName, target).isEmpty()) {
+            switchMap(component)
+        }
     }
 
     /**
@@ -1320,6 +1602,12 @@ object VirtualLauncher {
         val targetDisplay = if (wantHi) appHiDisplayId else appDisplayId
         // 任务查询共用一次 dumpsys 快照（此前 onTarget + 清理两块屏最多连跑 3 遍 4s 超时命令）
         val tasks = taskIdsByDisplayPkg()
+        // singleTask 媒体入口会复用媒体屏上的任务，切到普通应用屏只会看到空白。
+        // 按用户设定留在媒体区域，并把仪表盘带回前台。
+        if (mediaDisplayId >= 0 && tasksOf(tasks, component.packageName, mediaDisplayId).isNotEmpty()) {
+            showDashboard()
+            return launchMediaApp(component)
+        }
         val onTarget = tasksOf(tasks, component.packageName, targetDisplay).isNotEmpty()
         if (!onTarget) {
             // 偏好切换后清理另一块应用屏上的旧任务（不同屏双实例会各自维护状态，易混淆）
@@ -1347,15 +1635,15 @@ object VirtualLauncher {
             val target = component.flattenToShortString()
             result =
                 if (onTarget) {
-                    Shell.exec("am start -n $target --display $targetDisplay", timeoutMs = 8000)
+                    Shell.exec("am start -n ${target.asShellArgument()} --display $targetDisplay", timeoutMs = 8000)
                 } else {
                     // MULTIPLE_TASK：即使该应用在其他屏有任务，也强制在目标屏新建实例
-                    Shell.exec("am start -n $target --display $targetDisplay -f 0x18000000", timeoutMs = 8000)
+                    Shell.exec("am start -n ${target.asShellArgument()} --display $targetDisplay -f 0x18000000", timeoutMs = 8000)
                 }
             ok = result.ok && result.output.contains("Starting:", ignoreCase = true)
             if (!ok && onTarget) {
                 // 复用路径失败（任务可能已被系统移走）：退回 MULTIPLE_TASK 新建
-                val retry = Shell.exec("am start -n $target --display $targetDisplay -f 0x18000000", timeoutMs = 8000)
+                val retry = Shell.exec("am start -n ${target.asShellArgument()} --display $targetDisplay -f 0x18000000", timeoutMs = 8000)
                 ok = retry.ok && retry.output.contains("Starting:", ignoreCase = true)
             }
         }
@@ -1364,19 +1652,21 @@ object VirtualLauncher {
                 "out=${result.output.take(80)}",
         )
         if (ok) {
-            synchronized(runningApps) { runningApps.add(component) }
-            notifyRunningAppsChanged()
+            recordSessionApp(component, targetDisplay)
             // 仪表盘/全屏地图中打开普通应用：退出仪表盘并隐藏地图层，
             // 否则 SPLIT 带区继续画在应用上面（实测地图 tile 盖住打开的应用）
+            dashboardPageAnimating = false
+            dashboardUserDragging = false
             if (dashboardMode || mapFullscreen) {
                 dashboardMode = false
                 mapFullscreen = false
                 notifyDashboard()
-                composer?.setTileLayout(DualDisplayComposer.TileLayout.HIDDEN)
                 logSink?.invoke("LAUNCHER: 退出仪表盘（普通应用已打开）")
             }
+            composer?.setTileLayout(DualDisplayComposer.TileLayout.HIDDEN)
             // 合成器切到目标屏（超采样屏等其出帧再切；原生屏即时切换）
             composer?.requestActiveApp(targetDisplay == appHiDisplayId)
+            composer?.animateAppEntry()
             // 应用已在运行、被系统按旧配置带回前台的情况：启动后探测一次是否仍
             // letterbox（提示卡只对「应用横屏」名单内的应用生效，其它应用不计）
             val ctx = appContextRef
@@ -1413,7 +1703,15 @@ object VirtualLauncher {
     private var appsCache: List<AppEntry>? = null
 
     /** 应用清单缓存（桌面与车机设置共享；安装/卸载广播时失效）。 */
-    fun cachedApps(context: Context): List<AppEntry> = appsCache ?: scanLaunchableApps(context).also { appsCache = it }
+    private val appsScanLock = Any()
+
+    fun cachedApps(context: Context): List<AppEntry> {
+        appsCache?.let { return it }
+        check(android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) { "Cold app scan must run off the main thread" }
+        return synchronized(appsScanLock) {
+            appsCache ?: scanLaunchableApps(context.applicationContext).also { appsCache = it }
+        }
+    }
 
     /**
      * 仅读取共享缓存，**绝不扫描**：设置页等必须在主线程取列表的界面用这个，
@@ -1430,7 +1728,7 @@ object VirtualLauncher {
         appsCache = null
     }
 
-    fun launchableApps(context: Context): List<AppEntry> = scanLaunchableApps(context)
+    fun launchableApps(context: Context): List<AppEntry> = cachedApps(context)
 
     /**
      * 扫描所有可启动应用（桌面网格与设置页共用）。
@@ -1481,7 +1779,12 @@ object VirtualLauncher {
                         AppEntry(
                             component = ComponentName(info.packageName, info.name),
                             label = label,
-                            icon = info.loadIcon(pm),
+                            // 不缓存各 APK 的超大原始图标，避免上百个自适应图标挤爆内存。
+                            icon =
+                                android.graphics.drawable.BitmapDrawable(
+                                    context.resources,
+                                    AppIcons.rounded(info.loadIcon(pm), 144),
+                                ),
                         ) to pinyinKey(label)
                     }.onFailure {
                         skipped++
@@ -1518,7 +1821,6 @@ object VirtualLauncher {
     private var watchdogThread: Thread? = null
 
     val taskRegex = Regex("""Task\{[0-9a-f]+ #(\d+) type=standard A=\d+:(\S+)""")
-    private val displayRegex = Regex("""Display: mDisplayId=(\d+)""")
 
     /** 诊断日志出口（由 MainActivity 接到文件日志）。 */
     @Volatile

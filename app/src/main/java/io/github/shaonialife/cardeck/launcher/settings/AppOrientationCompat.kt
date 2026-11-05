@@ -267,6 +267,27 @@ object AppOrientationCompat {
         }
     }
 
+    /** 地图首次启动前设置，串行于复原；记录会话名单，断开后恢复手机方向。 */
+    fun prepareMap(
+        context: Context,
+        pkg: String,
+    ) {
+        val app = context.applicationContext
+        runCatching {
+            executor
+                .submit {
+                    val store = prefs(app)
+                    val prepared = store.getStringSet("session_maps", emptySet()).orEmpty()
+                    if (pkg in prepared || Build.VERSION.SDK_INT < MIN_SUPPORTED_SDK) return@submit
+                    // 先登记，进程中断或第二条失败时下一轮仍可撤销半写入状态。
+                    store.edit().putStringSet("session_maps", prepared + pkg).commit()
+                    val first = Shell.exec("am compat enable $CHANGE_UNDEFINED_TO_NOSENSOR $pkg", timeoutMs = 4000)
+                    val second = if (first.ok) Shell.exec("am compat enable $CHANGE_ANY_ORIENTATION $pkg", timeoutMs = 4000) else first
+                    diagSink?.invoke("ORIENTATION: 地图自适应 pkg=$pkg ok=${first.ok && second.ok}")
+                }.get(10, java.util.concurrent.TimeUnit.SECONDS)
+        }.onFailure { diagSink?.invoke("ORIENTATION: 地图自适应未完成 pkg=$pkg") }
+    }
+
     /** 会话建立：名单内应用逐个写入覆盖（幂等）。返回**成功**写入的应用数。 */
     fun applyAll(context: Context): Int {
         val pkgs = enabledPkgs(context)
@@ -305,11 +326,12 @@ object AppOrientationCompat {
     /** 会话结束：名单内应用统一复原（偏好保留，仅撤销系统覆盖）。返回处理的应用数。 */
     fun resetAll(context: Context): Int {
         var count = 0
-        enabledPkgs(context).forEach { pkg ->
+        (enabledPkgs(context) + prefs(context).getStringSet("session_maps", emptySet()).orEmpty()).toSet().forEach { pkg ->
             Shell.exec("am compat disable $CHANGE_UNDEFINED_TO_NOSENSOR $pkg", timeoutMs = 4000)
             Shell.exec("am compat disable $CHANGE_ANY_ORIENTATION $pkg", timeoutMs = 4000)
             count++
         }
+        prefs(context).edit().remove("session_maps").commit()
         return count
     }
 

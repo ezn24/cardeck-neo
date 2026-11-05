@@ -33,11 +33,21 @@
         android:paddingBottom="1.52dp">
 
         <ImageView
+            android:id="@+id/dockRecents"
+            android:layout_width="38.10dp"
+            android:layout_height="match_parent"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/recent_apps"
+            android:padding="9.90dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_recent_apps" />
+
+    <ImageView
             android:id="@+id/dockHome"
             android:layout_width="38.10dp"
             android:layout_height="match_parent"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="回到桌面"
+            android:contentDescription="@string/ui_001"
             android:padding="9.90dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_dock_home" />

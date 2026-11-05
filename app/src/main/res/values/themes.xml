@@ -31,6 +31,16 @@
         <item name="android:windowAnimationStyle">@style/CarPlaySettingsAnimation</item>
     </style>
 
+    <style name="Theme.CarPlaySender.Grid" parent="Theme.CarPlaySender.Launcher">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowBackground">#090B12</item>
+    </style>
+
+    <style name="Theme.CarPlaySender.Recents" parent="Theme.CarPlaySender.Settings">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowBackground">#090B12</item>
+    </style>
+
     <style name="CarPlaySettingsAnimation" parent="">
         <item name="android:activityOpenEnterAnimation">@anim/settings_in</item>
         <item name="android:activityOpenExitAnimation">@anim/stay</item>
@@ -51,5 +61,12 @@
         <item name="android:windowDisablePreview">true</item>
         <item name="android:statusBarColor">#000000</item>
         <item name="android:navigationBarColor">#000000</item>
+    </style>
+    <style name="CarDeckAppPicker" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="android:windowBackground">#FF121215</item>
+        <item name="android:colorBackground">#FF121215</item>
+        <item name="android:textColorPrimary">#FFF5F5F7</item>
+        <item name="android:textColorSecondary">#FF8E8E93</item>
+        <item name="colorAccent">#FF7BDAC8</item>
     </style>
 </resources>

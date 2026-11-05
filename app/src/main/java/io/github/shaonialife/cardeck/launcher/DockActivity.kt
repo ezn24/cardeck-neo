@@ -98,6 +98,7 @@ class DockActivity : AppCompatActivity() {
         batteryFill = findViewById(R.id.dockBatteryFill)
         appsContainer = findViewById(R.id.dockApps)
         wallpaperView = findViewById(R.id.dockWallpaper)
+        findViewById<View>(R.id.dockRecents).setOnClickListener { VirtualLauncher.showRecentApps(this) }
         findViewById<ImageView>(R.id.dockHome).apply {
             setOnClickListener { Bg.run("dock-home") { VirtualLauncher.onHomePressed() } }
             // 图标随模式切换：仪表盘激活=房屋（点按回桌面）；否则=田字格（点按进仪表盘）。

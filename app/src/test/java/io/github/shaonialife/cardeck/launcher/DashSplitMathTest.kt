@@ -3,6 +3,7 @@ package io.github.shaonialife.cardeck.launcher
 import io.github.shaonialife.cardeck.render.CARD_MARGIN_PX
 import io.github.shaonialife.cardeck.render.DASH_GAP_PX
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -13,6 +14,16 @@ import org.junit.Test
  */
 class DashSplitMathTest {
     private val appLen = 1000
+
+    @Test
+    fun dashboardUsesFixedThreeToOneShareAcrossDisplaySizes() {
+        for (length in listOf(360, 540, 1000, 1920)) {
+            val geometry = VirtualLauncher.dashSplitGeom(length, VirtualLauncher.DASH_SPLIT_DEFAULT_FRACTION)
+            val usable = length - CARD_MARGIN_PX * 2 - DASH_GAP_PX.toInt()
+            assertEquals(3f / 4f, geometry.fraction, 0.001f)
+            assertTrue(kotlin.math.abs(geometry.tileLen - usable * 3f / 4f) < 1f)
+        }
+    }
 
     @Test
     fun defaultFractionCentersHandle() {

@@ -1,4 +1,27 @@
-# CarDeck — 让 Android 手机扮演 iPhone 直连车机
+# CarDeck Neo
+
+CarDeck Neo 是基於 [CarDeck](https://github.com/shaonialife/cardeck) 的介面改版。它讓 Android 手機透過無線 CarPlay 連接相容車機，顯示 CarDeck 的地圖、媒體及應用頁。
+
+此版本預計維護於 [ezn24/cardeck-neo](https://github.com/ezn24/cardeck-neo) 的 `neo` 分支。
+
+## 主要改動
+
+- **分屏與操作**。連線後直接進入地圖與媒體分屏。兩區採固定 3:1 比例，分屏與應用頁可滑動切換，點地圖卡可展開全屏。要交換兩區的位置，前往 **車機設定 → 顯示 → 對調地圖與音樂位置**。
+- **地圖**。在 **車機設定 → 預設地圖** 選擇預設 App，也可以點 **選擇其他已安裝應用…** 搜尋。若只想更換本次連線的地圖，連線後在同一頁點 **切換目前地圖（不改預設）**。兩個選單都可依應用名稱或套件名稱搜尋。
+- **媒體**。點分屏的媒體卡即可開啟音樂 App，再點右下角的浮動按鈕返回播放控制。
+- **Dock 背景應用與桌面管理**。點 Dock 的 **背景應用**，可查看本次連線開過的 App、切換 App 或關閉車機視窗。要更改應用頁顯示哪些 App，前往 **車機設定 → 管理桌面應用**，用搜尋欄找到 App 並勾選或取消勾選。
+- **語言與通知**。在 **車機設定 → 顯示 → 語言** 可選擇繁體中文、簡體中文、英文或跟隨系統。在 **車機設定 → 顯示** 開啟 **顯示車機通知橫幅**，即可在車機上看到通知。
+
+在專案根目錄建置 Neo 的 Android 偵錯版：
+
+```powershell
+.\gradlew.bat :app:assembleStandardDebug
+.\gradlew.bat :app:testStandardDebugUnitTest :app:lintStandardDebug
+```
+
+APK 位於 `app/build/outputs/apk/standard/debug/`。詳細操作及建置環境見 [儀表板使用說明](docs/DASHBOARD-UX.md)。下方的上游下載連結提供 CarDeck 原版。
+
+---
 
 让一台普通 Android 手机（未 root）扮演 **CarPlay 发送端（iPhone 角色）**，
 把 app 自绘界面投到支持 CarPlay 的车机上。
@@ -22,7 +45,7 @@
   只走无线：蓝牙 RFCOMM → 车机热点 → mDNS → iAP2/AirPlay。
 - 详细协议依据见 [docs/PROTOCOL-NOTES.md](docs/PROTOCOL-NOTES.md)。
 
-## 下载安装
+## 上游 CarDeck 下載與安裝
 
 **推荐：GitHub Release**（可直接下载、附 SHA-256 与签名指纹）：
 [Releases](https://github.com/shaonialife/cardeck/releases/latest)
@@ -49,13 +72,14 @@
 
 ## 路线图与 Go/No-Go
 
-| 阶段 | 内容 | 门槛 | 状态 |
-|---|---|---|---|
-| Phase 0 | 测试台 + 网络层 demo（本仓库） | 两台手机 mDNS 互发现 | ✅ 已验收（DiPlay 测试台） |
-| Phase 1 | iAP2 发送端会话（链路状态机 + 0x1D00/0x5702/0x4300） | 接收端日志显示「iPhone 接入」 | ✅ 已验收：完整走通至 0x4301，拿到热点凭据与 AirPlay 端点 |
-| Phase 2 | AirPlay 主会话（PairVerify + H.264 编码 + HID 回传） | 备用机显示本机画面并可触摸 | ✅ 已验收（2026-10-08 23:17）：30fps 推流+渲染、触摸事件回传打通 |
-| Phase 3 | 真车（奥迪 MIB3）验证 | 车机点亮 | ✅ **全通（2026-10-11）**：视频稳定上屏 + 车机触摸/滑动可交互（详见下方 Phase 3-C） |
-| 兜底 | 买 Tbox 安卓盒子，把同一套自绘 UI 装进盒子 | — | 不需要（真车路线已通） |
+
+| 阶段    | 内容                                                 | 门槛                          | 状态                                                                               |
+| ------- | ---------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
+| Phase 0 | 测试台 + 网络层 demo（本仓库）                       | 两台手机 mDNS 互发现          | ✅ 已验收（DiPlay 测试台）                                                         |
+| Phase 1 | iAP2 发送端会话（链路状态机 + 0x1D00/0x5702/0x4300） | 接收端日志显示「iPhone 接入」 | ✅ 已验收：完整走通至 0x4301，拿到热点凭据与 AirPlay 端点                          |
+| Phase 2 | AirPlay 主会话（PairVerify + H.264 编码 + HID 回传） | 备用机显示本机画面并可触摸    | ✅ 已验收（2026-10-08 23:17）：30fps 推流+渲染、触摸事件回传打通                   |
+| Phase 3 | 真车（奥迪 MIB3）验证                                | 车机点亮                      | ✅**全通（2026-10-11）**：视频稳定上屏 + 车机触摸/滑动可交互（详见下方 Phase 3-C） |
+| 兜底    | 买 Tbox 安卓盒子，把同一套自绘 UI 装进盒子           | —                            | 不需要（真车路线已通）                                                             |
 
 **Phase 3-C 全通（2026-10-11，奥迪实车验收）**：iAP2 → AirPlay 配对 → 视频推流 →
 触摸回传 → 虚拟屏注入全链路可交互。本日攻坚战果（细节见 `docs/PROTOCOL-NOTES.md` §9c）：
@@ -88,6 +112,7 @@
 
 **Phase 3 实车突破（2026-10-09，Audi_MMI_6318 / MHI3_AS_AU_P3801，见 `docs/PROTOCOL-NOTES.md` §9b）**：
 与测试台（DiPlay）相比，奥迪 MIB3 有六处关键差异，逐一修正后 iAP2 全链路首次贯通：
+
 1. 车机**主动发 SYN** 声明会话表 `{1:control, 2:EA}`，手机必须 ACK+原样回显，
    之后 CSM 走 **1 号会话**（发 10 号被车机静默丢弃，而链路层照常 ACK——极具迷惑性）
 2. **MFi 挑战必须 20 字节**（32B 车机完全不应答；测试台 DiPlay 反而要 32B → 做成 32/20/16 回退）
@@ -101,6 +126,7 @@
    且**绝不能**断 BT 控制会话（测试台 detach hack 会让奥迪拆掉整轮会话）
 
 **Phase 1 真机调试记录（2026-10-08，DiPlay on Redmi K40）**：
+
 1. `StreamDuplexStream` 读写共享锁导致死锁（读阻塞持锁，写永远等待）→ 读写分离
 2. MFi 挑战 16 字节被拒（Carlinkit EC 身份走 AuthV3，要求**精确 32 字节**）→ 已修
 3. 参考代码（xcertplay）在订阅后发 0x6800 StartHID；**实际测试台 DiPlay 不发**（订阅完直接等 0x5702）→ 改为 2 秒可选等待
@@ -210,22 +236,27 @@ reference/                          # 参考仓库（gitignore，不入库不分
 ## 构建与发布
 
 ```bash
-./gradlew :app:assembleDebug      # 日常调试包（app/build/outputs/apk/debug/）
-./gradlew :app:assembleRelease    # 发布包（app/build/outputs/apk/release/）
-./gradlew testDebugUnitTest       # 单元测试
+./gradlew :app:assembleStandardDebug    # 日常偵錯包
+./gradlew :app:assembleStandardRelease  # Release APK
+./gradlew :app:testStandardDebugUnitTest # 單元測試
 ```
 
-**版本号**：`app/build.gradle.kts` 顶部 `appVersionName` 是唯一来源（语义化版本），
-`versionCode` 由它自动推导（`major*10000 + minor*100 + patch`），避免两处不同步导致
-用户装不上更新却没有任何提示。改版本只改这一行。
+**版本號**：修改 `app/build.gradle.kts` 頂部的 `appVersionName`。Gradle 以 `major × 10000 + minor × 100 + patch` 算出基礎版本碼，再乘以 10,000。CI 將執行編號加到版本碼的最後四位。
 
-**CI 自动出包**（`.github/workflows/android-ci.yml`）：每次 push 用仓库 Secrets 里的
-正式 keystore 构建 `assembleRelease`，并自动累计构建号——传
-`-Pcardeck.buildNumber=<run_number>`，得到 `0.1.13.<N>` / `versionCode=base*10000+N`
-（每次推送 +1，可直接覆盖安装上一版；升 patch 时自动反超）。产物
-`CarDeck-<版本>-release.apk` 只在 Actions 的 Artifacts 里，**不发布 GitHub Release**。
-没配 `KEYSTORE_BASE64`（以及 `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`）时
-流水线直接失败，不会用 debug 签名凑一个「正式版」。
+**GitHub Actions 簽名建置**（`.github/workflows/android-ci.yml`）會在推送到 `neo` 分支時執行。若預設分支也包含此工作流，可在 Actions 選取 `neo` 手動執行。單元測試與 Lint 通過後，流程建置 `standard` Release APK，驗證簽名，再把 `CarDeck-Neo-<版本>-release.apk` 上傳為 Artifacts。執行摘要包含 APK 的 SHA-256 與簽名憑證指紋。
+
+在 Neo 倉庫的 **Settings → Secrets and variables → Actions** 加入以下 Secrets：
+
+
+| Secret                         | 值                                 |
+| ------------------------------ | ---------------------------------- |
+| `KEYSTORE_BASE64`              | Release keystore 檔案的 Base64     |
+| `KEYSTORE_PASSWORD`            | keystore 密碼                      |
+| `KEY_ALIAS`                    | 簽名金鑰別名                       |
+| `KEY_PASSWORD`                 | 簽名金鑰密碼                       |
+| `EXPECTED_CERT_SHA256`（選用） | 預期的簽名憑證 SHA-256，供流程比對 |
+
+PowerShell 可用 `[Convert]::ToBase64String([IO.File]::ReadAllBytes("cardeck-release.jks"))` 取得 Base64。缺少必要 Secrets 時，簽名建置會失敗。Actions 以執行編號作為版本後綴，例如 `0.1.39.12`。同簽名的 Release APK 可依版本號覆蓋安裝。
 
 **签名**：本地 `assembleRelease` 在没有 `keystore.properties` 时退回 **debug 签名**
 （只给 fork 者试装；CI 带构建号的构建会直接报错），正式对外分发前请配置真实签名：

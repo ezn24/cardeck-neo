@@ -1,10 +1,366 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 应用名**不含** CarPlay：它既是 Apple 的商标，用「CarPlay」作产品名会构成
-         商标性使用（且容易被误认为官方产品）。兼容关系写在副标题/README 里，
-         那属于描述性引用。详见仓库根目录 DISCLAIMER.md 与 README「非官方声明」。 -->
-    <string name="app_name">CarDeck 车机投屏</string>
-    <string name="app_subtitle">非官方实验性 CarPlay 兼容发送端</string>
-    <string name="car_settings">车机设置</string>
-    <string name="accessibility_description">镜像模式：把车机触摸手势注入手机屏幕，不读取屏幕内容</string>
+    <string name="app_name" formatted="false">CarDeck 车机投屏</string>
+    <string name="app_subtitle" formatted="false">非官方实验性 CarPlay 兼容发送端</string>
+    <string name="car_settings" formatted="false">车机设置</string>
+    <string name="accessibility_description" formatted="false">镜像模式：把车机触摸手势注入手机屏幕，不读取屏幕内容</string>
+    <string name="ui_001" formatted="false">回到桌面</string>
+    <string name="ui_002" formatted="false">设备检测中</string>
+    <string name="ui_003" formatted="false">车机服务在线</string>
+    <string name="ui_004" formatted="false">车机</string>
+    <string name="ui_005" formatted="false">未连接</string>
+    <string name="ui_006" formatted="false">清理残留屏</string>
+    <string name="ui_007" formatted="false">与车机蓝牙完成配对后，点击下方按钮发起无线连接</string>
+    <string name="ui_008" formatted="false">分辨率 100% · 30/30 fps</string>
+    <string name="ui_009" formatted="false">操作</string>
+    <string name="ui_010" formatted="false">启动连接</string>
+    <string name="ui_011" formatted="false">车机侧声音 · 开启</string>
+    <string name="ui_012" formatted="false">连接准备</string>
+    <string name="ui_013" formatted="false">检查中…</string>
+    <string name="ui_014" formatted="false">就绪</string>
+    <string name="ui_015" formatted="false">蓝牙</string>
+    <string name="ui_016" formatted="false">蓝牙配对</string>
+    <string name="ui_017" formatted="false">选择设备</string>
+    <string name="ui_018" formatted="false">与车机蓝牙配对后 · 连接自动回连</string>
+    <string name="ui_019" formatted="false">热点</string>
+    <string name="ui_020" formatted="false">车机热点</string>
+    <string name="ui_021" formatted="false">接收端热点 SSID（0x5703 下发）</string>
+    <string name="ui_022" formatted="false">去连接</string>
+    <string name="ui_023" formatted="false">声音</string>
+    <string name="ui_024" formatted="false">车机侧声音</string>
+    <string name="ui_025" formatted="false">需要「投屏」权限，可选 · 关闭时车机无声音</string>
+    <string name="ui_026" formatted="false">授权</string>
+    <string name="ui_027" formatted="false">车机显示</string>
+    <string name="ui_028" formatted="false">常亮</string>
+    <string name="ui_029" formatted="false">常亮 + 暗幕</string>
+    <string name="ui_030" formatted="false">手机不锁屏，无操作时真息屏（断电） · 车机不受影响</string>
+    <string name="ui_031" formatted="false">假息屏</string>
+    <string name="ui_032" formatted="false">立即假息屏</string>
+    <string name="ui_033" formatted="false">点击手机屏幕任意处恢复</string>
+    <string name="ui_034" formatted="false">进入</string>
+    <string name="ui_035" formatted="false">壁纸</string>
+    <string name="ui_036" formatted="false">车机壁纸</string>
+    <string name="ui_037" formatted="false">全屏 aspectFill</string>
+    <string name="ui_038" formatted="false">更换</string>
+    <string name="ui_039" formatted="false">恢复默认</string>
+    <string name="ui_040" formatted="false">横屏</string>
+    <string name="ui_041" formatted="false">车机设置</string>
+    <string name="ui_042" formatted="false">桌面应用 · 应用横屏 · 超采样 · dock 栏 · 默认地图</string>
+    <string name="ui_043" formatted="false">终端</string>
+    <string name="ui_044" formatted="false">Shell 全局状态</string>
+    <string name="ui_045" formatted="false">letterbox / 虚拟屏 / wm 覆盖 —— 调试排查用</string>
+    <string name="ui_046" formatted="false">展开</string>
+    <string name="ui_047" formatted="false">(点「刷新」读取)</string>
+    <string name="ui_048" formatted="false">刷新</string>
+    <string name="ui_049" formatted="false">复位</string>
+    <string name="ui_050" formatted="false">复位默认</string>
+    <string name="ui_051" formatted="false">日志</string>
+    <string name="ui_052" formatted="false">运行日志</string>
+    <string name="ui_053" formatted="false">最近日志 · 可复制反馈问题</string>
+    <string name="ui_054" formatted="false">监听日志</string>
+    <string name="ui_055" formatted="false">清除日志</string>
+    <string name="ui_056" formatted="false">复制日志</string>
+    <string name="ui_057" formatted="false">导出日志文件</string>
+    <string name="ui_058" formatted="false">跳到底部</string>
+    <string name="ui_059" formatted="false">免责声明</string>
+    <string name="ui_060" formatted="false">测试范围 · 驾驶风险 · 系统权限</string>
+    <string name="ui_061" formatted="false">远程调试</string>
+    <string name="ui_062" formatted="false">服务器地址 · 配对码 · 日志上报</string>
+    <string name="ui_063" formatted="false">连接由前台服务保活 · 退出本界面不影响会话</string>
+    <string name="ui_064" formatted="false">返回</string>
+    <string name="ui_065" formatted="false">桌面</string>
+    <string name="ui_066" formatted="false">管理桌面应用</string>
+    <string name="ui_067" formatted="false">应用超采样</string>
+    <string name="ui_068" formatted="false">应用横屏</string>
+    <string name="ui_069" formatted="false">dock 栏设置</string>
+    <string name="ui_070" formatted="false">默认地图</string>
+    <string name="ui_071" formatted="false">显示</string>
+    <string name="ui_072" formatted="false">首次使用前请完整阅读。接受后可在主界面底部随时重看。</string>
+    <string name="ui_073" formatted="false">放弃使用</string>
+    <string name="ui_074" formatted="false">选择目标车机</string>
+    <string name="ui_075" formatted="false">已配对设备可直接选用；点击未配对的设备会发起系统蓝牙配对</string>
+    <string name="ui_076" formatted="false">已配对</string>
+    <string name="ui_077" formatted="false">暂无已配对设备——请在下方扫描并点击配对</string>
+    <string name="ui_078" formatted="false">附近的设备</string>
+    <string name="ui_079" formatted="false">重新扫描</string>
+    <string name="ui_080" formatted="false">正在扫描附近的蓝牙设备…</string>
+    <string name="ui_081" formatted="false">取消</string>
+    <string name="ui_082" formatted="false">正在读取应用列表…</string>
+    <string name="ui_083" formatted="false">视频流按车机分辨率的百分比生成虚拟屏与编码画面（逻辑布局不变）。分辨率改动下次连接起效；帧率为推流刷新频率，切换实时生效。</string>
+    <string name="ui_084" formatted="false">连接时真息屏</string>
+    <string name="ui_085" formatted="false">开</string>
+    <string name="ui_086" formatted="false">关</string>
+    <string name="ui_087" formatted="false">连接成功后物理断电手机面板（系统保持唤醒、虚拟屏照常渲染）；关闭则只用暗幕。按电源键两次可恢复屏幕。</string>
+    <string name="ui_088" formatted="false">上车自动连接</string>
+    <string name="ui_089" formatted="false">车机蓝牙连上时自动拉起会话（需 Shizuku 已启动）。需要「显示在其他应用上层」权限才能在后台启动；该权限缺失时会自动补授。</string>
+    <string name="ui_090" formatted="false">HID 原始日志</string>
+    <string name="ui_091" formatted="false">键位校准用：打开后每帧 HID 报文写一行 HID-RAW（uuid + hex 字节），对照按下方向盘/旋钮时打印的字节调整键位映射。平时请关闭，避免日志刷屏。</string>
+    <string name="ui_092" formatted="false">流分辨率</string>
+    <string name="ui_093" formatted="false">保存后下次连接起效</string>
+    <string name="ui_094" formatted="false">目标帧率</string>
+    <string name="ui_095" formatted="false">连接中切换实时生效；英雄卡实时显示「实际/目标」帧率</string>
+    <string name="ui_096" formatted="false">触摸注入节流</string>
+    <string name="ui_097" formatted="false">交互滞后但帧率正常（事件派发堆积）时调高试验；拖动即时生效</string>
+    <string name="ui_098" formatted="false">调整 dock 栏壁纸的暗幕透明度与高斯模糊程度，拖动即时生效。</string>
+    <string name="ui_099" formatted="false">暗幕透明度</string>
+    <string name="ui_100" formatted="false">背景模糊程度</string>
+    <string name="ui_101" formatted="false">栏宽度</string>
+    <string name="ui_102" formatted="false">整条 Dock（图标/时钟/文字）等比缩放，50%–100%；保存后下次连接起效</string>
+    <string name="ui_103" formatted="false">仪表盘地图屏使用的地图应用，选中即生效。</string>
+    <string name="ui_104" formatted="false">开启后竖屏应用在车机屏以横屏全屏渲染。开关本身持久保存，下次连接自动生效；系统覆盖仅在会话期间生效，会话结束自动复原，应用回到正常方向，无需手动处理。注意：部分界面文字可能变大或变小。切换开关时系统会立即重启目标应用使其生效（正在运行的应用会丢失未保存的界面状态）。</string>
+    <string name="ui_105" formatted="false">超采样以 1.5× 分辨率渲染再缩回，竖屏应用顶部空带更小；横屏应用建议关闭（更清晰流畅）。自动 = 检测为竖屏应用时开启。</string>
+    <string name="ui_106" formatted="false">自动</string>
+    <string name="ui_107" formatted="false">开启</string>
+    <string name="ui_108" formatted="false">关闭</string>
+    <string name="ui_109" formatted="false">蓝牙设备</string>
+    <string name="ui_110" formatted="false">选择</string>
+    <string name="ui_111" formatted="false">媒体</string>
+    <string name="ui_112" formatted="false">未在播放</string>
+    <string name="ui_113" formatted="false">媒体信息未连接</string>
+    <string name="ui_114" formatted="false">无法读取播放信息</string>
+    <string name="ui_115" formatted="false">未授予「通知使用权」——请在系统设置中开启</string>
+    <string name="ui_116" formatted="false">正在播放</string>
+    <string name="ui_117" formatted="false">本机系统不支持该功能：需要 Android 14 及以上</string>
+    <string name="ui_118" formatted="false">（这两个横屏兼容项自 Android 14 起才进入平台）。\n</string>
+    <string name="ui_119" formatted="false">清除横屏残留</string>
+    <string name="ui_120" formatted="false">以下条目已不在应用列表，但系统侧横屏覆盖仍开着：\n</string>
+    <string name="ui_121" formatted="false">\n\n清除会立即重启在运行的这些应用（未保存的界面状态会丢失）；</string>
+    <string name="ui_122" formatted="false">已卸载的条目不受影响。是否继续？</string>
+    <string name="ui_123" formatted="false">清除</string>
+    <string name="ui_124" formatted="false">系统限制：user 版本只能修改可调试(debuggable)应用的兼容设置</string>
+    <string name="ui_125" formatted="false">本机系统不支持该功能（需 Android 14 及以上）</string>
+    <string name="ui_126" formatted="false">写入失败（Shizuku 未就绪或超时）——可稍后重试</string>
+    <string name="ui_127" formatted="false">已开启横屏（会话期间生效）</string>
+    <string name="ui_128" formatted="false">系统残留：横屏仍在生效 · 点击清除</string>
+    <string name="ui_129" formatted="false">\n\n清除会立即重启该应用（正在运行的应用会丢失未保存的界面状态）。是否继续？</string>
+    <string name="ui_130" formatted="false">清除失败（Shizuku 异常）</string>
+    <string name="ui_131" formatted="false">已开启：连接时物理息屏</string>
+    <string name="ui_132" formatted="false">已关闭：连接时只用暗幕</string>
+    <string name="ui_133" formatted="false">已开启：上车自动连接</string>
+    <string name="ui_134" formatted="false">已关闭：上车不再自动启动</string>
+    <string name="ui_135" formatted="false">已开启 HID 原始日志（校准完请关掉）</string>
+    <string name="ui_136" formatted="false">已关闭 HID 原始日志</string>
+    <string name="ui_137" formatted="false">保存后下次连接起效；当前连接按 </string>
+    <string name="ui_138" formatted="false">触摸节流 </string>
+    <string name="ui_139" formatted="false">勾选的应用显示在车机桌面</string>
+    <string name="ui_140" formatted="false">竖屏应用渲染更精细，可三态调节</string>
+    <string name="ui_141" formatted="false">竖屏应用在车机横屏全屏显示</string>
+    <string name="ui_142" formatted="false">壁纸暗幕透明度与模糊程度</string>
+    <string name="ui_143" formatted="false">仪表盘地图屏使用的地图应用</string>
+    <string name="ui_144" formatted="false">流分辨率缩放与目标帧率</string>
+    <string name="open_media_app" formatted="false">打开播放器</string>
+    <string name="choose_media_app" formatted="false">选择播放器</string>
+    <string name="choose_other_map" formatted="false">选择其他已安装应用…</string>
+    <string name="language" formatted="false">语言</string>
+    <string name="follow_system" formatted="false">跟随系统</string>
+    <string name="dashboard_layout_note" formatted="false">仪表盘固定为地图 3/4、媒体 1/4。媒体 App 顶部的「返回播放控制」回到控制卡；Dock 主页按钮以整页滑动动画切换应用页与仪表盘，不支持手势跨模式翻页。</string>
+    <string name="screen_001" formatted="false">蓝牙 iAP2 握手 → 加入车机热点 → 建立 CarPlay 会话</string>
+    <string name="screen_002" formatted="false">壁纸已更新</string>
+    <string name="screen_003" formatted="false">保存失败</string>
+    <string name="screen_004" formatted="false">仅视频（更流畅）</string>
+    <string name="screen_005" formatted="false">开启声音</string>
+    <string name="screen_006" formatted="false">是否在车机侧播放声音？</string>
+    <string name="screen_007" formatted="false">开启后手机媒体/导航声音投到车机播放（不开启则车上无声）。\n</string>
+    <string name="screen_008" formatted="false">音视频同时传会增加负载，以看视频为主时可先不开启。\n</string>
+    <string name="screen_009" formatted="false">开启声音需要「投屏」权限，会一并申请。</string>
+    <string name="screen_010" formatted="false">取消连接？</string>
+    <string name="screen_011" formatted="false">将停止当前连接尝试：蓝牙与 WiFi 链路都会断开，需重新点「启动连接」。</string>
+    <string name="screen_012" formatted="false">继续连接</string>
+    <string name="screen_013" formatted="false">取消连接</string>
+    <string name="screen_014" formatted="false">蓝牙未开启</string>
+    <string name="screen_015" formatted="false">与车机的无线配对通信依赖蓝牙。请先开启手机蓝牙，并确认已与车机配对。</string>
+    <string name="screen_016" formatted="false">去开启蓝牙</string>
+    <string name="screen_017" formatted="false">需要开启位置服务</string>
+    <string name="screen_018" formatted="false">Android 12 加入车机热点（应用专属 WiFi）要求位置服务开启——系统用它判定</string>
+    <string name="screen_019" formatted="false">可连接的 WiFi，不会记录你的位置。\n\n请打开位置服务后重试；也可以到</string>
+    <string name="screen_020" formatted="false">WLAN 设置手动连接热点。</string>
+    <string name="screen_021" formatted="false">去开启</string>
+    <string name="screen_022" formatted="false">断开连接？</string>
+    <string name="screen_023" formatted="false">将停止车机推流并关闭保活服务，车机画面会立即中断。\n\n</string>
+    <string name="screen_024" formatted="false">注意：投屏授权会随服务停止失效，下次如需车机侧声音请重新授权。</string>
+    <string name="screen_025" formatted="false">断开</string>
+    <string name="screen_026" formatted="false">重试检查</string>
+    <string name="screen_027" formatted="false">打开 Shizuku</string>
+    <string name="screen_028" formatted="false">无法打开 Shizuku App——请手动打开</string>
+    <string name="screen_029" formatted="false">请求授权</string>
+    <string name="screen_030" formatted="false">请在 Shizuku 的授权窗口点「允许」——允许后会自动继续</string>
+    <string name="screen_031" formatted="false">未获得 Shizuku 授权——连接仍不可用</string>
+    <string name="screen_032" formatted="false">Shizuku 已就绪——虚拟屏与触摸注入可用</string>
+    <string name="screen_033" formatted="false">已开启「常亮+暗幕」。</string>
+    <string name="screen_034" formatted="false">若提示\"无法访问互联网\"请选择保持连接</string>
+    <string name="screen_035" formatted="false">暂无热点密码——蓝牙连上后自动获取</string>
+    <string name="screen_036" formatted="false">暗幕未就绪（连接成功后自动启用）</string>
+    <string name="screen_037" formatted="false">已恢复默认壁纸</string>
+    <string name="screen_038" formatted="false">恢复失败</string>
+    <string name="screen_039" formatted="false">日志为空</string>
+    <string name="screen_040" formatted="false">CarDeck 日志</string>
+    <string name="screen_041" formatted="false">「常亮+暗幕」已开启。</string>
+    <string name="screen_042" formatted="false">检查中</string>
+    <string name="screen_043" formatted="false">正在检查残留屏…</string>
+    <string name="screen_044" formatted="false">无法连接，点下方「Shizuku」查看怎么处理</string>
+    <string name="screen_045" formatted="false">正在连接</string>
+    <string name="screen_046" formatted="false">已连接</string>
+    <string name="screen_047" formatted="false">断开连接</string>
+    <string name="screen_048" formatted="false">已连接 · %s · %02d:%02d · 视频推流中</string>
+    <string name="screen_049" formatted="false">车机侧声音 · 关闭</string>
+    <string name="screen_050" formatted="false">未配对</string>
+    <string name="screen_051" formatted="false">尚未配对——点「选择设备」扫描并配对车机</string>
+    <string name="screen_052" formatted="false">需重选</string>
+    <string name="screen_053" formatted="false">已授权</string>
+    <string name="screen_054" formatted="false">投屏权限已就绪 · 连接时可选开启</string>
+    <string name="screen_055" formatted="false">未就绪</string>
+    <string name="screen_056" formatted="false">shell 权限已就绪 · 虚拟屏与触摸可用</string>
+    <string name="screen_057" formatted="false">服务未运行——点此查看怎么启动</string>
+    <string name="screen_058" formatted="false">未授权本应用——点此请求授权</string>
+    <string name="screen_059" formatted="false">未安装 Shizuku——点此查看说明</string>
+    <string name="screen_060" formatted="false">未授予「附近的设备」权限——无法扫描；可到系统设置授权后重开本弹窗</string>
+    <string name="screen_061" formatted="false">未授予「附近的设备」权限——无法扫描附近设备</string>
+    <string name="screen_062" formatted="false">蓝牙未开启——请先开启蓝牙</string>
+    <string name="screen_063" formatted="false">自动（不指定目标）</string>
+    <string name="screen_064" formatted="false">逐个尝试 · 接受任一设备连入</string>
+    <string name="screen_065" formatted="false">当前</string>
+    <string name="screen_066" formatted="false">已切换为自动（不指定目标）</string>
+    <string name="screen_067" formatted="false">需要「附近的设备」权限才能扫描…</string>
+    <string name="screen_068" formatted="false">扫描启动失败——请确认蓝牙已开启后点「重新扫描」</string>
+    <string name="screen_069" formatted="false">配对</string>
+    <string name="screen_070" formatted="false">无法发起配对——请在系统蓝牙设置中手动配对</string>
+    <string name="screen_071" formatted="false">（保持仅配对，避免车机拒绝 CarPlay）</string>
+    <string name="screen_072" formatted="false">配对未完成——可再点「配对」重试，或到系统蓝牙设置手动配对</string>
+    <string name="screen_073" formatted="false">——出站只连该设备、入站拒绝其它设备</string>
+    <string name="screen_074" formatted="false">未知设备</string>
+    <string name="screen_075" formatted="false">Shizuku 未就绪</string>
+    <string name="screen_076" formatted="false">正在导出全部日志…</string>
+    <string name="screen_077" formatted="false">正在导出本次启动的日志…</string>
+    <string name="screen_078" formatted="false">导出失败——请检查存储空间后重试</string>
+    <string name="screen_079" formatted="false">仅含本次 App 启动之后的日志。需要更早的历史，请长按导出按钮。</string>
+    <string name="screen_080" formatted="false">包含历史日志（文件上限 2MB，超出时只保留最近一段）。</string>
+    <string name="screen_081" formatted="false">日志已导出</string>
+    <string name="screen_082" formatted="false">可在「文件管理 → 下载 → CarDeck」中找到，也可直接分享给开发者排查问题。</string>
+    <string name="screen_083" formatted="false">打开文件</string>
+    <string name="screen_084" formatted="false">打开文件夹</string>
+    <string name="screen_085" formatted="false">分享文件</string>
+    <string name="screen_086" formatted="false">请到「文件管理 → 下载 → CarDeck」查看</string>
+    <string name="screen_087" formatted="false">没有可打开文件的应用——请到文件管理器中按上述路径查找</string>
+    <string name="screen_088" formatted="false">分享日志文件</string>
+    <string name="screen_089" formatted="false">没有可分享的应用</string>
+    <string name="screen_090" formatted="false">日志采集已关闭（打开「监听日志」开关恢复）</string>
+    <string name="screen_091" formatted="false">读取中…</string>
+    <string name="screen_092" formatted="false">Shizuku 未就绪——shell 状态读取需要 Shizuku</string>
+    <string name="screen_093" formatted="false">CarPlay 虚拟屏: </string>
+    <string name="screen_094" formatted="false">无</string>
+    <string name="screen_095" formatted="false">检测到残留虚拟屏</string>
+    <string name="screen_096" formatted="false">残留屏会持续占用显示资源，并可能影响下次连接。是否立即清理？</string>
+    <string name="screen_097" formatted="false">暂不</string>
+    <string name="screen_098" formatted="false">清理</string>
+    <string name="screen_099" formatted="false">复位中…</string>
+    <string name="screen_100" formatted="false">Shizuku 未就绪——shell 复位需要 Shizuku</string>
+    <string name="screen_101" formatted="false">letterbox 宽高比</string>
+    <string name="screen_102" formatted="false">overlay 叠加屏</string>
+    <string name="screen_103" formatted="false">复位结果：\n</string>
+    <string name="screen_104" formatted="false">提示：letterbox 调优会在下次连接时自动重新应用</string>
+    <string name="screen_105" formatted="false">需要「显示在其他应用上层」权限</string>
+    <string name="screen_106" formatted="false">用途：无操作时真息屏（屏幕断电但不锁屏，防止手机锁屏后车机触摸失效）。</string>
+    <string name="screen_107" formatted="false">不会读取或遮挡其他应用内容，点击屏幕立即恢复。</string>
+    <string name="screen_108" formatted="false">去授权</string>
+    <string name="wifi_password_copied">已复制热点密码（%1$d 位），可粘贴到密码框</string>
+    <string name="logs_copied">已复制 %1$d 字符日志</string>
+    <string name="leftover_displays">上次会话遗留 %1$d 个虚拟屏待清理</string>
+    <string name="target_device_only">目标「%1$s」· 只连接此设备</string>
+    <string name="paired_devices_auto">已配对 %1$d 台 · 将逐个尝试</string>
+    <string name="paired_devices">已配对 %1$d 台 · 自动回连</string>
+    <string name="target_removed">「%1$s」已不在配对列表，请重新选择</string>
+    <string name="scanned_devices">扫描中…已发现 %1$d 台未配对设备</string>
+    <string name="pairing_device">正在配对「%1$s」，请在系统弹窗确认</string>
+    <string name="target_selected">目标已设为「%1$s」</string>
+    <string name="displays_released">已释放 %1$d/%2$d 个残留屏</string>
+    <string name="byte_count">%1$d 字节</string>
+    <string name="stream_stats">分辨率 %1$d%% · %2$d/%3$d fps</string>
+    <string name="selected_apps">已选 %1$d 个</string>
+    <string name="app_shown">「%1$s」已显示到桌面</string>
+    <string name="app_hidden">「%1$s」已从桌面移除</string>
+    <string name="supersampling_saved">「%1$s」超采样：%2$s（下次启动生效）</string>
+    <string name="overrides_cleared">已清除 %1$d/%2$d 个横屏残留</string>
+    <string name="orientation_cleared">「%1$s」横屏残留已清除，应用将重启</string>
+    <string name="dock_scale_saved">Dock 大小 %1$d%% 已保存，下次连接起效</string>
+    <string name="resolution_saved">分辨率 %1$d%% 已保存，下次连接起效</string>
+    <string name="resolution_active">%1$d%% 运行中</string>
+    <string name="frame_rate_saved">目标帧率已设为 %1$d fps</string>
+    <string name="shizuku_not_ready_hint">Shizuku 未就绪（%1$s）——</string>
+    <string name="device_status">%1$s · Shizuku %2$s</string>
+    <string name="shizuku_ready_label">就绪</string>
+    <string name="shizuku_unavailable_label">未就绪</string>
+    <string name="orientation_saved">「%1$s」横屏：%2$s，应用将重启</string>
+    <string name="touch_off">关闭</string>
+    <string name="shizuku_open">打开 Shizuku</string>
+    <string name="shizuku_request">请求授权</string>
+    <string name="shizuku_install">需要先安装 Shizuku</string>
+    <string name="shizuku_install_body">请安装 Shizuku 并按官方说明通过无线调试启动服务，返回后重试。创建虚拟屏和触摸操作需要此服务。</string>
+    <string name="shizuku_start">Shizuku 服务未运行</string>
+    <string name="shizuku_start_body">打开 Shizuku 并启动服务，返回后重试。手机重启后需要重新启动服务。</string>
+    <string name="shizuku_allow">未授权本应用使用 Shizuku</string>
+    <string name="shizuku_allow_body">点击「请求授权」并允许本应用使用 Shizuku；也可在 Shizuku 的已授权应用中开启。</string>
+    <string name="shizuku_ready">Shizuku 就绪</string>
+    <string name="phase_01">已取消连接</string>
+    <string name="phase_02">车机热点已断开（%1$s）</string>
+    <string name="phase_03">蓝牙就绪，等待车机回连…</string>
+    <string name="phase_04">拿到车机热点凭据，绑定 WiFi…</string>
+    <string name="phase_05">已连上车机热点但未能绑定网络——请重新连接</string>
+    <string name="phase_06">正在静默连接车机热点 %1$s…</string>
+    <string name="phase_07">正在切换到车机热点 %1$s…</string>
+    <string name="phase_08">正在加入车机热点 %1$s…（不影响移动数据）</string>
+    <string name="phase_09">已加入车机热点</string>
+    <string name="phase_10">已加入车机热点</string>
+    <string name="phase_11">已取消——连接车机热点需要开启 WLAN</string>
+    <string name="phase_12">WiFi 未开启——连接车机热点需要开启 WLAN</string>
+    <string name="phase_13">等待打开 WLAN（最长 120 秒，取消连接可中止）</string>
+    <string name="phase_14">已取消连接</string>
+    <string name="phase_15">WiFi 未开启——无法连接车机热点</string>
+    <string name="phase_16">未能加入车机热点——请到 WLAN 设置手动连接</string>
+    <string name="phase_17">未能加入车机热点——请重新连接</string>
+    <string name="phase_18">请在 WLAN 设置中连接 %1$s…</string>
+    <string name="phase_19">尚未连接 %1$s——自动加入已中止</string>
+    <string name="phase_20">手机不在车机热点——请到 WLAN 设置加入 %1$s</string>
+    <string name="phase_21">未能加入车机热点——请重新连接</string>
+    <string name="phase_22">正在自动加入车机热点 %1$s…</string>
+    <string name="phase_23">自动加入热点失败——请到 WLAN 设置加入 %1$s</string>
+    <string name="phase_24">正在加入车机热点 %1$s…若被切回原 WiFi，请在 WLAN 中手动连接</string>
+    <string name="phase_25">未能在热点驻留——请到 WLAN 设置手动连接 %1$s</string>
+    <string name="phase_26">已加入车机热点</string>
+    <string name="phase_27">未能绑定车机热点 %1$s 的网络通道</string>
+    <string name="phase_28">mDNS 解析车机地址…</string>
+    <string name="phase_29">等待车机下发连接信息（0x4301）…</string>
+    <string name="phase_30">蓝牙已连上车机，解析热点地址…</string>
+    <string name="phase_31">手机不在车机热点——请到 WLAN 设置加入 %1$s</string>
+    <string name="phase_32">AirPlay 配对中…</string>
+    <string name="phase_33">建立明文会话…</string>
+    <string name="phase_34">接收端拒绝了会话建立（SETUP 未通过）</string>
+    <string name="phase_35">等待手机加入车机热点 %1$s…</string>
+    <string name="phase_36">手机不在车机热点——请到 WLAN 设置加入 %1$s</string>
+    <string name="phase_paired">配对完成，建立 CarPlay 会话…</string>
+    <string name="phase_legacy">建立明文会话…</string>
+    <string name="search_desktop_apps">搜索应用名称或包名</string>
+    <string name="no_matching_apps">没有匹配的应用</string>
+    <string name="mute_phone_audio">连接时静音手机媒体输出</string>
+    <string name="mute_phone_audio_note">默认关闭。部分系统会把播放捕获一并静音，导致接收端无声；关闭时手机可能同时播放。下次连接生效。</string>
+    <string name="switch_current_map">切换当前地图（不改默认）</string>
+    <string name="swap_dashboard_panes">对调地图与音乐位置</string>
+    <string name="back_playback_controls">返回播放控制</string>
+    <string name="show_car_notifications">显示车机通知横幅</string>
+    <string name="car_notifications_note">需要通知使用权。显示 5 秒，点击打开应用；右上角可关闭。锁屏时隐藏消息预览。</string>
+    <string name="new_notification">新通知</string>
+    <string name="recent_apps">后台应用</string>
+    <string name="recent_back">返回</string>
+    <string name="recent_refresh">刷新</string>
+    <string name="recent_close_all">全部关闭</string>
+    <string name="recent_close">关闭</string>
+    <string name="recent_help">管理车机上已打开的窗口，点击应用可切换。关闭窗口后，音乐可能继续播放。</string>
+    <string name="recent_loading">正在读取已打开的应用…</string>
+    <string name="recent_empty">目前没有已打开的应用</string>
+    <string name="recent_count">%1$d 个已打开的应用</string>
+    <string name="recent_read_failed">无法读取应用列表，请重试</string>
+    <string name="recent_open_failed">无法打开应用，请刷新后重试</string>
+    <string name="recent_close_failed">部分窗口未能关闭，请刷新后重试</string>
+    <string name="recent_open_app">打开 %1$s</string>
+    <string name="recent_close_app">关闭 %1$s</string>
+    <string name="search_map_apps">搜索应用</string>
 </resources>

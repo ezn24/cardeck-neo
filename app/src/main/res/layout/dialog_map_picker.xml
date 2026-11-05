@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/mapPickerSearch"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_app_row"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="10dp"
+        android:hint="@string/search_map_apps"
+        android:imeOptions="actionDone"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:selectAllOnFocus="false"
+        android:singleLine="true"
+        android:textColor="#FFF5F5F7"
+        android:textColorHint="#FF8E8E93"
+        android:textSize="13sp" />
+    <TextView
+        android:id="@+id/mapPickerEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="#FF8E8E93"
+        android:text="@string/no_matching_apps"
+        android:visibility="gone" />
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/mapPickerList"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:scrollbars="vertical" />
+</LinearLayout>

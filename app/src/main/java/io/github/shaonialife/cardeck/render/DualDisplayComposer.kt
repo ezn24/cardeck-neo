@@ -169,7 +169,15 @@ class DualDisplayComposer(
     private var mapInput: Input? = null
 
     @Volatile
-    var onSurfacesReady: ((dock: Surface, app: Surface, appHi: Surface?, map: Surface?) -> Unit)? = null
+    var onSurfacesReady: ((dock: Surface, app: Surface, appHi: Surface?, map: Surface?, media: Surface) -> Unit)? = null
+
+    @Volatile
+    var showMediaPane = false
+
+    @Volatile
+    private var mediaInput: Input? = null
+
+    fun hasMediaContent(): Boolean = mediaInput?.hasContent == true
 
     @Throws(IllegalStateException::class)
     fun start(
@@ -181,6 +189,8 @@ class DualDisplayComposer(
         appHiHeightPx: Int = 0,
         mapWidthPx: Int = 0,
         mapHeightPx: Int = 0,
+        mediaWidthPx: Int = 1,
+        mediaHeightPx: Int = 1,
     ) {
         if (running.getAndSet(true)) return
         hasHiInput = appHiWidthPx > 0 && appHiHeightPx > 0
@@ -191,7 +201,18 @@ class DualDisplayComposer(
         glThread =
             Thread({
                 try {
-                    runGl(dockWidthPx, dockHeightPx, appWidthPx, appHeightPx, appHiWidthPx, appHiHeightPx, mapWidthPx, mapHeightPx)
+                    runGl(
+                        dockWidthPx,
+                        dockHeightPx,
+                        appWidthPx,
+                        appHeightPx,
+                        appHiWidthPx,
+                        appHiHeightPx,
+                        mapWidthPx,
+                        mapHeightPx,
+                        mediaWidthPx,
+                        mediaHeightPx,
+                    )
                 } catch (error: IllegalStateException) {
                     failure = error
                 } finally {
@@ -253,7 +274,35 @@ class DualDisplayComposer(
 
     /** 切换地图 tile 布局。 */
     fun setTileLayout(layout: TileLayout) {
+        if (tileLayout == layout) return
+        val now = android.os.SystemClock.uptimeMillis()
+        val previous = layoutMotion
+        layoutMotion =
+            LayoutMotion(
+                previous?.valueAt(now) ?: if (tileLayout == TileLayout.FULLSCREEN) 1f else 0f,
+                if (layout == TileLayout.FULLSCREEN) 1f else 0f,
+                now,
+            )
         tileLayout = layout
+    }
+
+    @Volatile
+    private var layoutMotion: LayoutMotion? = null
+
+    @Volatile
+    private var appEntryAt = 0L
+
+    @Volatile
+    private var appEntryFromMedia = false
+
+    fun animateAppEntry(fromMediaCard: Boolean = false) {
+        appEntryFromMedia = fromMediaCard
+        appEntryAt = android.os.SystemClock.uptimeMillis()
+    }
+
+    fun isLayoutTransitioning(): Boolean {
+        val now = android.os.SystemClock.uptimeMillis()
+        return layoutMotion?.isRunning(now) == true || now - appEntryAt < LayoutMotion.DURATION_MS
     }
 
     /**
@@ -300,6 +349,8 @@ class DualDisplayComposer(
         hiH: Int,
         mapW: Int,
         mapH: Int,
+        mediaW: Int,
+        mediaH: Int,
     ) {
         // ---- EGL ----
         val display: EGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -372,6 +423,7 @@ class DualDisplayComposer(
         val app = newInput(appW, appH).also { appInput = it }
         val hi = if (hasHiInput) newInput(hiW, hiH).also { appHi = it } else null
         val map = if (hasMapInput) newInput(mapW, mapH).also { mapInput = it } else null
+        val media = newInput(mediaW, mediaH).also { mediaInput = it }
 
         // ---- 着色器 ----
         val program = buildProgram(oes = true)
@@ -571,94 +623,101 @@ class DualDisplayComposer(
                     it.surfaceTexture.updateTexImage()
                 }
             }
+            if (media.hasNewFrame) {
+                media.hasNewFrame = false
+                media.hasContent = true
+                media.frameCount++
+                media.surfaceTexture.updateTexImage()
+            }
             val activeInput = if (activeAppHi) hi else app
-            if (dockAtBottom) {
-                // 竖屏：dock 横条贴底（GL 坐标 y=0 为底边），app 在其余区域；
-                // 仪表盘时地图卡叠在应用区上半（地图上/音乐下），全屏盖满应用区。
-                if (dock.hasContent) drawInput(dock, 0f, outWidth.toFloat(), 0f, dockH.toFloat())
-                if (activeInput?.hasContent == true) {
-                    drawInput(activeInput, 0f, outWidth.toFloat(), dockH.toFloat(), outHeight.toFloat())
-                }
-                val layoutP = tileLayout
-                if (map?.hasContent == true && layoutP != TileLayout.HIDDEN) {
-                    if (layoutP == TileLayout.FULLSCREEN) {
-                        drawInput(map!!, 0f, outWidth.toFloat(), dockH.toFloat(), outHeight.toFloat())
-                    } else {
-                        // 上半卡片：左右留 16、顶留 16；pager 水平滑动 → tile 向左滑出（跟手）
-                        // tileEdgeOverride = tile 把手侧边缘（顶部原点 y，即 tile 下缘）；
-                        // GL y = outHeight − 顶部 y（底部原点换算，勿翻转——坐标系约定见类注释）
-                        val tileH = (outHeight - dockH) / 2f - CARD_MARGIN_PX * 1.5f
-                        val handleEdge =
-                            if (tileEdgeOverride > 0f) tileEdgeOverride else CARD_MARGIN_PX + tileH
-                        val slide = tileSlideFraction * outWidth
-                        val nowMs = android.os.SystemClock.uptimeMillis()
-                        if (nowMs - lastPortraitTileDiag > 5_000) {
-                            lastPortraitTileDiag = nowMs
-                            VirtualLauncher.logSink?.invoke(
-                                "COMPOSER: 竖屏 tile 绘制 tileH=$tileH handleEdge=$handleEdge " +
-                                    "slide=$slide frames=${map!!.frameCount}",
-                            )
-                        }
-                        drawInputUV(
-                            map!!,
-                            CARD_MARGIN_PX - slide,
-                            outWidth - CARD_MARGIN_PX - slide,
-                            outHeight - handleEdge,
-                            (outHeight - CARD_MARGIN_PX).toFloat(),
-                            cornerRadius = TILE_CORNER_RADIUS,
-                        )
-                    }
+            val nowMs = android.os.SystemClock.uptimeMillis()
+            val appLeft = if (dockAtBottom) 0f else dockW.toFloat()
+            val appBottom = if (dockAtBottom) dockH.toFloat() else 0f
+            if (activeInput?.hasContent == true) {
+                val entry = LayoutMotion.progress(nowMs - appEntryAt)
+                val inset = (1f - entry) * (outWidth - appLeft) * 0.035f
+                val mediaStart = VirtualLauncher.dashSplitPos + DASH_GAP_PX / 2f
+                val originLeft = if (dockAtBottom) CARD_MARGIN_PX.toFloat() else mediaStart
+                val originTop = if (dockAtBottom) mediaStart else CARD_MARGIN_PX.toFloat()
+
+                fun expand(
+                    from: Float,
+                    to: Float,
+                ) = from + (to - from) * entry
+                if (appEntryFromMedia && entry < 1f) {
+                    drawInputUV(
+                        activeInput,
+                        expand(originLeft, appLeft),
+                        expand(outWidth - CARD_MARGIN_PX.toFloat(), outWidth.toFloat()),
+                        expand(appBottom + CARD_MARGIN_PX, appBottom),
+                        expand(outHeight - originTop, outHeight.toFloat()),
+                        cornerRadius = (1f - entry) * TILE_CORNER_RADIUS,
+                    )
                 } else {
-                    // 竖屏 tile 未绘制：状态节流采样（5s），排查「看不到地图卡」
-                    val nowMs = android.os.SystemClock.uptimeMillis()
-                    if (nowMs - lastPortraitTileDiag > 5_000) {
-                        lastPortraitTileDiag = nowMs
-                        VirtualLauncher.logSink?.invoke(
-                            "COMPOSER: 竖屏 tile 未画 layout=$layoutP " +
-                                "mapInput=${map != null} hasContent=${map?.hasContent} " +
-                                "frames=${map?.frameCount} dash=${launcherDashHint()}",
-                        )
-                    }
+                    drawInputUV(
+                        activeInput,
+                        appLeft + inset,
+                        outWidth - inset,
+                        appBottom + inset,
+                        outHeight - inset,
+                        cornerRadius = (1f - entry) * TILE_CORNER_RADIUS,
+                    )
                 }
-            } else {
-                if (activeInput?.hasContent == true) {
-                    drawInput(activeInput, dockW.toFloat(), outWidth.toFloat(), 0f, outHeight.toFloat())
-                }
-                // 地图层叠在应用区之上（HIDDEN 不画）：
-                //  FULLSCREEN=整个应用区；SPLIT=左半卡片区域。
-                //  地图屏经 VirtualLauncher 按布局动态 resize（分屏=tile 显示尺寸、
-                //  全屏=应用区尺寸），屏上地图应用 relayout——两种布局都是整幅
-                //  1:1 映射（旧的「全尺寸屏+中央带区裁剪采样」方案已移除）。
-                val layout = tileLayout
-                if (map?.hasContent == true && layout != TileLayout.HIDDEN) {
-                    if (layout == TileLayout.FULLSCREEN) {
-                        drawInput(map!!, dockW.toFloat(), outWidth.toFloat(), 0f, outHeight.toFloat())
+            }
+            if (map?.hasContent == true && tileLayout != TileLayout.HIDDEN) {
+                val expanded =
+                    layoutMotion?.valueAt(nowMs)
+                        ?: if (tileLayout == TileLayout.FULLSCREEN) 1f else 0f
+                val margin = CARD_MARGIN_PX.toFloat()
+                val slide = tileSlideFraction * (outWidth - appLeft) * (1f - expanded)
+                val mainLen = if (dockAtBottom) outHeight - dockH else outWidth - dockW
+                val tileEdge =
+                    if (tileEdgeOverride > 0f) {
+                        tileEdgeOverride
                     } else {
-                        // 卡片形态：四周留边 + 圆角（与音乐卡一致）。
-                        // 分屏把手拖动期间 tileEdgeOverride（tile 右缘 x）替代公式值：
-                        // 只改绘制矩形、纹理整幅拉伸（不动 buffer/虚拟屏），松手才 resize。
-                        // tileSlideFraction：随 pager 滑动把 tile 平移出/入左侧（视觉跟手）。
-                        val half = (outWidth - dockW) / 2f
-                        val tileW = half - CARD_MARGIN_PX - CARD_MARGIN_PX / 2f
-                        val x1 =
-                            if (tileEdgeOverride > 0f) {
-                                tileEdgeOverride
-                            } else {
-                                dockW + CARD_MARGIN_PX + tileW
-                            }
-                        val slide = tileSlideFraction * (outWidth - dockW)
-                        drawInputUV(
-                            map!!,
-                            dockW + CARD_MARGIN_PX - slide,
-                            x1 - slide,
-                            CARD_MARGIN_PX.toFloat(),
-                            (outHeight - CARD_MARGIN_PX).toFloat(),
-                            cornerRadius = TILE_CORNER_RADIUS,
-                        )
+                        (if (dockAtBottom) 0f else appLeft) +
+                            VirtualLauncher.dashSplitGeom(mainLen, VirtualLauncher.DASH_SPLIT_DEFAULT_FRACTION).tileEdge
                     }
+                val mapPane = VirtualLauncher.mapPaneBounds()
+                val splitLeft = mapPane.left - slide
+                val splitRight = mapPane.right - slide
+                val splitBottom = outHeight - mapPane.bottom
+
+                fun mix(
+                    from: Float,
+                    to: Float,
+                ) = from + (to - from) * expanded
+                drawInputUV(
+                    map!!,
+                    mix(splitLeft, appLeft),
+                    mix(splitRight, outWidth.toFloat()),
+                    mix(splitBottom, appBottom),
+                    mix(outHeight - mapPane.top, outHeight.toFloat()),
+                    cornerRadius = TILE_CORNER_RADIUS * (1f - expanded),
+                )
+            }
+            if (showMediaPane &&
+                media.hasContent &&
+                tileLayout == TileLayout.SPLIT &&
+                (VirtualLauncher.dashboardMode || VirtualLauncher.dashboardPageAnimating)
+            ) {
+                val pane = VirtualLauncher.mediaAppBounds()
+                val slide = tileSlideFraction * (outWidth - appLeft)
+                drawInputUV(
+                    media,
+                    pane.left - slide,
+                    pane.right - slide,
+                    outHeight - pane.bottom,
+                    outHeight - pane.top,
+                    cornerRadius = TILE_CORNER_RADIUS,
+                )
+            }
+            if (dock.hasContent) {
+                if (dockAtBottom) {
+                    drawInput(dock, 0f, outWidth.toFloat(), 0f, dockH.toFloat())
+                } else {
+                    drawInput(dock, 0f, dockW.toFloat(), 0f, outHeight.toFloat())
                 }
-                // dock 最后绘制（最上层）：tile 滑动经过 dock 区域时从其下方穿过
-                if (dock.hasContent) drawInput(dock, 0f, dockW.toFloat(), 0f, outHeight.toFloat())
             }
             // 叠加卡片最后绘制（最上层，不受分支影响）：卡片坐标为输出画面坐标（顶部原点）
             syncOverlayTexture()?.let { card ->
@@ -681,7 +740,7 @@ class DualDisplayComposer(
         GLES20.glClearColor(0.04f, 0.07f, 0.09f, 1f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         EGL14.eglSwapBuffers(display, outputSurface)
-        onSurfacesReady?.invoke(dock.surface, app.surface, hi?.surface, map?.surface)
+        onSurfacesReady?.invoke(dock.surface, app.surface, hi?.surface, map?.surface, media.surface)
         startLatch?.countDown()
 
         // ---- 合成循环 ----
@@ -700,10 +759,12 @@ class DualDisplayComposer(
                 // 持续消费（纹理保持最新，避免 SurfaceTexture 队列积压卡住后台应用），
                 // 但不为看不见的内容白烧 GPU/带宽。
                 val hasNew =
-                    overlayDirty ||
+                    isLayoutTransitioning() ||
+                        overlayDirty ||
                         dock.hasNewFrame ||
                         (if (activeAppHi) appHi else app)?.hasNewFrame == true ||
-                        (tileLayout != TileLayout.HIDDEN && mapInput?.hasNewFrame == true)
+                        (tileLayout != TileLayout.HIDDEN && mapInput?.hasNewFrame == true) ||
+                        (showMediaPane && tileLayout == TileLayout.SPLIT && mediaInput?.hasNewFrame == true)
                 val now = System.currentTimeMillis()
                 val intervalMs = if (hasNew) 1000L / targetFps.coerceIn(1, 120) else 33L
                 if (now - lastComposeAt >= intervalMs) {
@@ -719,6 +780,9 @@ class DualDisplayComposer(
                 runCatching { GLES20.glDeleteTextures(1, intArrayOf(overlayTexture), 0) }
                 overlayTexture = 0
             }
+            runCatching { media.surface.release() }
+            runCatching { media.surfaceTexture.release() }
+            mediaInput = null
             runCatching { dock.surface.release() }
             runCatching { app.surface.release() }
             runCatching { dock.surfaceTexture.release() }

@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" formatted="false">CarDeck</string>
+    <string name="app_subtitle" formatted="false">Experimental CarPlay compatible sender</string>
+    <string name="car_settings" formatted="false">Car settings</string>
+    <string name="accessibility_description" formatted="false">Inject car touch gestures into the phone display without reading its content</string>
+    <string name="ui_001" formatted="false">Home</string>
+    <string name="ui_002" formatted="false">Checking device</string>
+    <string name="ui_003" formatted="false">Car service online</string>
+    <string name="ui_004" formatted="false">Car</string>
+    <string name="ui_005" formatted="false">Disconnected</string>
+    <string name="ui_006" formatted="false">Release leftover displays</string>
+    <string name="ui_007" formatted="false">Pair with your car over Bluetooth, then tap below to connect.</string>
+    <string name="ui_008" formatted="false">Resolution 100% · 30/30 fps</string>
+    <string name="ui_009" formatted="false">Actions</string>
+    <string name="ui_010" formatted="false">Connect</string>
+    <string name="ui_011" formatted="false">Car audio · On</string>
+    <string name="ui_012" formatted="false">Connection checklist</string>
+    <string name="ui_013" formatted="false">Checking…</string>
+    <string name="ui_014" formatted="false">Ready</string>
+    <string name="ui_015" formatted="false">Bluetooth</string>
+    <string name="ui_016" formatted="false">Bluetooth pairing</string>
+    <string name="ui_017" formatted="false">Choose device</string>
+    <string name="ui_018" formatted="false">Pair with your car to reconnect automatically</string>
+    <string name="ui_019" formatted="false">Wi-Fi</string>
+    <string name="ui_020" formatted="false">Car Wi-Fi</string>
+    <string name="ui_021" formatted="false">Car hotspot SSID</string>
+    <string name="ui_022" formatted="false">Join</string>
+    <string name="ui_023" formatted="false">Audio</string>
+    <string name="ui_024" formatted="false">Car audio</string>
+    <string name="ui_025" formatted="false">Optional screen capture permission is required for car audio.</string>
+    <string name="ui_026" formatted="false">Allow</string>
+    <string name="ui_027" formatted="false">Car display</string>
+    <string name="ui_028" formatted="false">Keep awake</string>
+    <string name="ui_029" formatted="false">Keep awake + dim</string>
+    <string name="ui_030" formatted="false">Keep the phone unlocked; turn its panel off when idle. Car display stays on.</string>
+    <string name="ui_031" formatted="false">Dim phone</string>
+    <string name="ui_032" formatted="false">Dim now</string>
+    <string name="ui_033" formatted="false">Tap anywhere on your phone to restore</string>
+    <string name="ui_034" formatted="false">Open</string>
+    <string name="ui_035" formatted="false">Wallpaper</string>
+    <string name="ui_036" formatted="false">Car wallpaper</string>
+    <string name="ui_037" formatted="false">Fill display</string>
+    <string name="ui_038" formatted="false">Change</string>
+    <string name="ui_039" formatted="false">Reset to default</string>
+    <string name="ui_040" formatted="false">Landscape</string>
+    <string name="ui_041" formatted="false">Car settings</string>
+    <string name="ui_042" formatted="false">Apps · Orientation · Quality · Dock · Default map</string>
+    <string name="ui_043" formatted="false">Terminal</string>
+    <string name="ui_044" formatted="false">System state</string>
+    <string name="ui_045" formatted="false">Letterboxing, virtual displays and window overrides for troubleshooting</string>
+    <string name="ui_046" formatted="false">Expand</string>
+    <string name="ui_047" formatted="false">(Tap Refresh to load)</string>
+    <string name="ui_048" formatted="false">Refresh</string>
+    <string name="ui_049" formatted="false">Reset</string>
+    <string name="ui_050" formatted="false">Reset defaults</string>
+    <string name="ui_051" formatted="false">Logs</string>
+    <string name="ui_052" formatted="false">Session logs</string>
+    <string name="ui_053" formatted="false">Recent logs to include with feedback</string>
+    <string name="ui_054" formatted="false">Live logs</string>
+    <string name="ui_055" formatted="false">Clear logs</string>
+    <string name="ui_056" formatted="false">Copy logs</string>
+    <string name="ui_057" formatted="false">Export log file</string>
+    <string name="ui_058" formatted="false">Scroll to bottom</string>
+    <string name="ui_059" formatted="false">Disclaimer</string>
+    <string name="ui_060" formatted="false">Compatibility · Driving risks · Permissions</string>
+    <string name="ui_061" formatted="false">Remote debugging</string>
+    <string name="ui_062" formatted="false">Server address · Pairing code · Log upload</string>
+    <string name="ui_063" formatted="false">Connection stays active when you leave this screen</string>
+    <string name="ui_064" formatted="false">Back</string>
+    <string name="ui_065" formatted="false">Home</string>
+    <string name="ui_066" formatted="false">Home screen apps</string>
+    <string name="ui_067" formatted="false">App supersampling</string>
+    <string name="ui_068" formatted="false">App orientation</string>
+    <string name="ui_069" formatted="false">Dock settings</string>
+    <string name="ui_070" formatted="false">Default map</string>
+    <string name="ui_071" formatted="false">Display</string>
+    <string name="ui_072" formatted="false">Please read before first use. You can review this from the main screen.</string>
+    <string name="ui_073" formatted="false">Decline</string>
+    <string name="ui_074" formatted="false">Choose your car</string>
+    <string name="ui_075" formatted="false">Select a paired device, or tap another device to pair over Bluetooth.</string>
+    <string name="ui_076" formatted="false">Paired</string>
+    <string name="ui_077" formatted="false">No paired devices. Scan below and tap a device to pair.</string>
+    <string name="ui_078" formatted="false">Nearby devices</string>
+    <string name="ui_079" formatted="false">Scan again</string>
+    <string name="ui_080" formatted="false">Scanning for nearby Bluetooth devices…</string>
+    <string name="ui_081" formatted="false">Cancel</string>
+    <string name="ui_082" formatted="false">Loading apps…</string>
+    <string name="ui_083" formatted="false">Resolution scales the video and virtual displays without changing the layout. Resolution changes apply next connection; frame rate changes apply immediately.</string>
+    <string name="ui_084" formatted="false">Turn phone screen off on connection</string>
+    <string name="ui_085" formatted="false">On</string>
+    <string name="ui_086" formatted="false">Off</string>
+    <string name="ui_087" formatted="false">Turn off the phone panel while keeping the system and car display active. Press the power button twice to restore. When disabled, the phone is only dimmed.</string>
+    <string name="ui_088" formatted="false">Auto-connect to car</string>
+    <string name="ui_089" formatted="false">Connect when your car connects over Bluetooth. Shizuku must be running. Background launch requires permission to display over other apps.</string>
+    <string name="ui_090" formatted="false">Raw HID logs</string>
+    <string name="ui_091" formatted="false">For button calibration: record raw HID reports while pressing steering wheel buttons or turning the controller. Keep disabled during normal use.</string>
+    <string name="ui_092" formatted="false">Video resolution</string>
+    <string name="ui_093" formatted="false">Applies next connection</string>
+    <string name="ui_094" formatted="false">Target frame rate</string>
+    <string name="ui_095" formatted="false">Applies immediately. The connection card shows actual and target frame rates.</string>
+    <string name="ui_096" formatted="false">Touch event throttling</string>
+    <string name="ui_097" formatted="false">Increase if touch input lags while video is smooth. Applies immediately.</string>
+    <string name="ui_098" formatted="false">Adjust wallpaper dimming and blur behind the Dock. Applies immediately.</string>
+    <string name="ui_099" formatted="false">Dimming opacity</string>
+    <string name="ui_100" formatted="false">Background blur</string>
+    <string name="ui_101" formatted="false">Dock size</string>
+    <string name="ui_102" formatted="false">Scale the Dock, including icons and clock, from 50% to 100%. Applies next connection.</string>
+    <string name="ui_103" formatted="false">Choose the dashboard map. You can also select any other installed app.</string>
+    <string name="ui_104" formatted="false">Show portrait apps in landscape on the car display. Preferences are saved; system overrides are restored after disconnection. Text size may change. Switching restarts the target app and may discard unsaved screen state.</string>
+    <string name="ui_105" formatted="false">Render at 1.5× resolution and scale down to reduce letterboxing in portrait apps. Disable for landscape apps. Auto enables it for portrait apps.</string>
+    <string name="ui_106" formatted="false">Auto</string>
+    <string name="ui_107" formatted="false">Enable</string>
+    <string name="ui_108" formatted="false">Disable</string>
+    <string name="ui_109" formatted="false">Bluetooth device</string>
+    <string name="ui_110" formatted="false">Choose</string>
+    <string name="ui_111" formatted="false">Media</string>
+    <string name="ui_112" formatted="false">Not playing</string>
+    <string name="ui_113" formatted="false">Media information unavailable</string>
+    <string name="ui_114" formatted="false">Playback information unavailable</string>
+    <string name="ui_115" formatted="false">Allow notification access in system settings</string>
+    <string name="ui_116" formatted="false">Playing</string>
+    <string name="ui_117" formatted="false">This feature requires Android 14 or later</string>
+    <string name="ui_118" formatted="false">(These orientation compatibility options require Android 14.)\n</string>
+    <string name="ui_119" formatted="false">Clear orientation overrides</string>
+    <string name="ui_120" formatted="false">These apps are no longer listed but still have orientation overrides:\n</string>
+    <string name="ui_121" formatted="false">\n\nClearing restarts affected running apps and discards unsaved screen state.</string>
+    <string name="ui_122" formatted="false">Uninstalled apps are unaffected. Continue?</string>
+    <string name="ui_123" formatted="false">Clear</string>
+    <string name="ui_124" formatted="false">This system only allows compatibility changes for debuggable apps</string>
+    <string name="ui_125" formatted="false">This feature requires Android 14 or later</string>
+    <string name="ui_126" formatted="false">Could not apply: Shizuku is unavailable or timed out. Try again later.</string>
+    <string name="ui_127" formatted="false">Landscape enabled for this session</string>
+    <string name="ui_128" formatted="false">Orientation override remains active. Tap to clear.</string>
+    <string name="ui_129" formatted="false">\n\nClearing restarts this app and discards unsaved screen state. Continue?</string>
+    <string name="ui_130" formatted="false">Could not clear: Shizuku error</string>
+    <string name="ui_131" formatted="false">Phone screen will turn off on connection</string>
+    <string name="ui_132" formatted="false">Phone will only dim on connection</string>
+    <string name="ui_133" formatted="false">Auto-connect enabled</string>
+    <string name="ui_134" formatted="false">Auto-connect disabled</string>
+    <string name="ui_135" formatted="false">Raw HID logs enabled. Disable after calibration.</string>
+    <string name="ui_136" formatted="false">Raw HID logs disabled</string>
+    <string name="ui_137" formatted="false">Applies next connection. Current session: </string>
+    <string name="ui_138" formatted="false">Touch throttling: </string>
+    <string name="ui_139" formatted="false">Choose apps to show on the car home screen</string>
+    <string name="ui_140" formatted="false">Adjust rendering quality for portrait apps</string>
+    <string name="ui_141" formatted="false">Show portrait apps in landscape on the car display</string>
+    <string name="ui_142" formatted="false">Wallpaper dimming and blur</string>
+    <string name="ui_143" formatted="false">Map app for the dashboard</string>
+    <string name="ui_144" formatted="false">Language, video resolution and frame rate</string>
+    <string name="open_media_app" formatted="false">Open music app</string>
+    <string name="choose_media_app" formatted="false">Choose music app</string>
+    <string name="choose_other_map" formatted="false">Choose another installed app…</string>
+    <string name="language" formatted="false">Language</string>
+    <string name="follow_system" formatted="false">System default</string>
+    <string name="dashboard_layout_note" formatted="false">Dashboard uses a fixed 3:1 map and media layout. Use Playback controls above the music app to return to its card. Dock Home slides between apps and dashboard; swiping cannot switch modes.</string>
+    <string name="screen_001" formatted="false">Bluetooth handshake → Join car Wi-Fi → Start CarPlay</string>
+    <string name="screen_002" formatted="false">Wallpaper updated</string>
+    <string name="screen_003" formatted="false">Could not save</string>
+    <string name="screen_004" formatted="false">Video only</string>
+    <string name="screen_005" formatted="false">Enable audio</string>
+    <string name="screen_006" formatted="false">Play audio through your car?</string>
+    <string name="screen_007" formatted="false">Send phone media and navigation audio to the car.\n</string>
+    <string name="screen_008" formatted="false">Audio adds processing load. You can leave it disabled for video only.\n</string>
+    <string name="screen_009" formatted="false">Screen capture permission is required for audio.</string>
+    <string name="screen_010" formatted="false">Cancel connection?</string>
+    <string name="screen_011" formatted="false">Stop this connection attempt and disconnect Bluetooth and Wi-Fi. Tap Connect to try again.</string>
+    <string name="screen_012" formatted="false">Keep connecting</string>
+    <string name="screen_013" formatted="false">Cancel connection</string>
+    <string name="screen_014" formatted="false">Bluetooth is off</string>
+    <string name="screen_015" formatted="false">Turn on Bluetooth and pair your phone with the car to connect wirelessly.</string>
+    <string name="screen_016" formatted="false">Turn on Bluetooth</string>
+    <string name="screen_017" formatted="false">Location services required</string>
+    <string name="screen_018" formatted="false">On Android 12, location services must be enabled to join car Wi-Fi. The system uses this to identify</string>
+    <string name="screen_019" formatted="false"> available networks; your location is not recorded.\n\nEnable location and try again, or open</string>
+    <string name="screen_020" formatted="false"> Wi-Fi settings to connect manually.</string>
+    <string name="screen_021" formatted="false">Enable</string>
+    <string name="screen_022" formatted="false">Disconnect?</string>
+    <string name="screen_023" formatted="false">Stop streaming and the connection service. The car display will disconnect immediately.\n\n</string>
+    <string name="screen_024" formatted="false">Screen capture permission expires when the service stops. Allow it again next time to use car audio.</string>
+    <string name="screen_025" formatted="false">Disconnect</string>
+    <string name="screen_026" formatted="false">Check again</string>
+    <string name="screen_027" formatted="false">Open Shizuku</string>
+    <string name="screen_028" formatted="false">Please open Shizuku manually</string>
+    <string name="screen_029" formatted="false">Request permission</string>
+    <string name="screen_030" formatted="false">Tap Allow in Shizuku. Connection will then continue automatically.</string>
+    <string name="screen_031" formatted="false">Shizuku permission is required to connect</string>
+    <string name="screen_032" formatted="false">Shizuku ready: virtual displays and touch input available</string>
+    <string name="screen_033" formatted="false">Keep awake and dimming enabled.</string>
+    <string name="screen_034" formatted="false">If prompted about no internet access, choose to stay connected</string>
+    <string name="screen_035" formatted="false">The hotspot password will be retrieved over Bluetooth</string>
+    <string name="screen_036" formatted="false">Dimming will be available after connection</string>
+    <string name="screen_037" formatted="false">Default wallpaper restored</string>
+    <string name="screen_038" formatted="false">Could not restore</string>
+    <string name="screen_039" formatted="false">No logs</string>
+    <string name="screen_040" formatted="false">CarDeck logs</string>
+    <string name="screen_041" formatted="false">Keep awake and dimming enabled.</string>
+    <string name="screen_042" formatted="false">Checking</string>
+    <string name="screen_043" formatted="false">Checking leftover displays…</string>
+    <string name="screen_044" formatted="false">Cannot connect. Tap Shizuku below for help.</string>
+    <string name="screen_045" formatted="false">Connecting</string>
+    <string name="screen_046" formatted="false">Connected</string>
+    <string name="screen_047" formatted="false">Disconnect</string>
+    <string name="screen_048" formatted="false">Connected · %s · %02d:%02d · Streaming video</string>
+    <string name="screen_049" formatted="false">Car audio · Off</string>
+    <string name="screen_050" formatted="false">Not paired</string>
+    <string name="screen_051" formatted="false">Tap Choose device to find and pair with your car</string>
+    <string name="screen_052" formatted="false">Choose again</string>
+    <string name="screen_053" formatted="false">Allowed</string>
+    <string name="screen_054" formatted="false">Screen capture allowed. Audio can be enabled when connecting.</string>
+    <string name="screen_055" formatted="false">Not ready</string>
+    <string name="screen_056" formatted="false">Shell access ready. Virtual displays and touch input available.</string>
+    <string name="screen_057" formatted="false">Service is not running. Tap for startup instructions.</string>
+    <string name="screen_058" formatted="false">Permission required. Tap to allow.</string>
+    <string name="screen_059" formatted="false">Shizuku is not installed. Tap for instructions.</string>
+    <string name="screen_060" formatted="false">Nearby devices permission is required. Allow it in system settings, then reopen this dialog.</string>
+    <string name="screen_061" formatted="false">Nearby devices permission is required to scan</string>
+    <string name="screen_062" formatted="false">Turn on Bluetooth first</string>
+    <string name="screen_063" formatted="false">Auto (any paired device)</string>
+    <string name="screen_064" formatted="false">Try paired devices in order and accept incoming connections</string>
+    <string name="screen_065" formatted="false">Current</string>
+    <string name="screen_066" formatted="false">Automatic device selection enabled</string>
+    <string name="screen_067" formatted="false">Nearby devices permission is required to scan…</string>
+    <string name="screen_068" formatted="false">Could not scan. Turn on Bluetooth, then tap Scan again.</string>
+    <string name="screen_069" formatted="false">Pair</string>
+    <string name="screen_070" formatted="false">Please pair manually in system Bluetooth settings</string>
+    <string name="screen_071" formatted="false">(Keep paired without other Bluetooth profiles for CarPlay compatibility)</string>
+    <string name="screen_072" formatted="false">Pairing incomplete. Tap Pair to retry or pair in system settings.</string>
+    <string name="screen_073" formatted="false"> — only connect to and accept connections from this device</string>
+    <string name="screen_074" formatted="false">Unknown device</string>
+    <string name="screen_075" formatted="false">Shizuku not ready</string>
+    <string name="screen_076" formatted="false">Exporting all logs…</string>
+    <string name="screen_077" formatted="false">Exporting current session logs…</string>
+    <string name="screen_078" formatted="false">Export failed. Check available storage and try again.</string>
+    <string name="screen_079" formatted="false">Includes logs since this launch. Long press Export to include earlier logs.</string>
+    <string name="screen_080" formatted="false">Includes earlier logs, up to the most recent 2 MB.</string>
+    <string name="screen_081" formatted="false">Logs exported</string>
+    <string name="screen_082" formatted="false">Find the file in Downloads → CarDeck, or share it for troubleshooting.</string>
+    <string name="screen_083" formatted="false">Open file</string>
+    <string name="screen_084" formatted="false">Open folder</string>
+    <string name="screen_085" formatted="false">Share file</string>
+    <string name="screen_086" formatted="false">Open Downloads → CarDeck in your file manager</string>
+    <string name="screen_087" formatted="false">No app can open this file. Find it using your file manager.</string>
+    <string name="screen_088" formatted="false">Share log file</string>
+    <string name="screen_089" formatted="false">No app available to share this file</string>
+    <string name="screen_090" formatted="false">Log collection is off. Enable Live logs to resume.</string>
+    <string name="screen_091" formatted="false">Loading…</string>
+    <string name="screen_092" formatted="false">Shizuku must be running to read system state</string>
+    <string name="screen_093" formatted="false">CarPlay virtual displays: </string>
+    <string name="screen_094" formatted="false">None</string>
+    <string name="screen_095" formatted="false">Leftover virtual displays found</string>
+    <string name="screen_096" formatted="false">Leftover displays use resources and may affect the next connection. Release them now?</string>
+    <string name="screen_097" formatted="false">Later</string>
+    <string name="screen_098" formatted="false">Release</string>
+    <string name="screen_099" formatted="false">Resetting…</string>
+    <string name="screen_100" formatted="false">Shizuku must be running to reset system state</string>
+    <string name="screen_101" formatted="false">Letterbox aspect ratio</string>
+    <string name="screen_102" formatted="false">Overlay displays</string>
+    <string name="screen_103" formatted="false">Reset results:\n</string>
+    <string name="screen_104" formatted="false">Letterbox adjustments will be reapplied next connection</string>
+    <string name="screen_105" formatted="false">Display over other apps permission required</string>
+    <string name="screen_106" formatted="false">Turn off the idle phone display without locking it, so car touch input keeps working.</string>
+    <string name="screen_107" formatted="false">Other app content is not read. Tap the phone screen to restore it.</string>
+    <string name="screen_108" formatted="false">Allow permission</string>
+    <string name="wifi_password_copied">Hotspot password copied (%1$d characters). Paste it into the password field.</string>
+    <string name="logs_copied">Copied %1$d characters of logs</string>
+    <string name="leftover_displays">%1$d leftover displays from the previous session</string>
+    <string name="target_device_only">Target: %1$s · Connect only to this device</string>
+    <string name="paired_devices_auto">%1$d paired devices · Try each in order</string>
+    <string name="paired_devices">%1$d paired devices · Reconnect automatically</string>
+    <string name="target_removed">%1$s is no longer paired. Choose another device.</string>
+    <string name="scanned_devices">Scanning… Found %1$d unpaired devices</string>
+    <string name="pairing_device">Pairing with %1$s. Confirm in the system dialog.</string>
+    <string name="target_selected">Target set to %1$s</string>
+    <string name="displays_released">Released %1$d/%2$d leftover displays</string>
+    <string name="byte_count">%1$d bytes</string>
+    <string name="stream_stats">Resolution %1$d%% · %2$d/%3$d fps</string>
+    <string name="selected_apps">%1$d selected</string>
+    <string name="app_shown">%1$s added to Home</string>
+    <string name="app_hidden">%1$s removed from Home</string>
+    <string name="supersampling_saved">%1$s supersampling: %2$s (next launch)</string>
+    <string name="overrides_cleared">Cleared %1$d/%2$d orientation overrides</string>
+    <string name="orientation_cleared">Orientation override cleared for %1$s. The app will restart.</string>
+    <string name="dock_scale_saved">Dock size %1$d%% saved for next connection</string>
+    <string name="resolution_saved">Resolution %1$d%% saved for next connection</string>
+    <string name="resolution_active">%1$d%% active</string>
+    <string name="frame_rate_saved">Target frame rate set to %1$d fps</string>
+    <string name="shizuku_not_ready_hint">Shizuku not ready (%1$s). </string>
+    <string name="device_status">%1$s · Shizuku %2$s</string>
+    <string name="shizuku_ready_label">ready</string>
+    <string name="shizuku_unavailable_label">not ready</string>
+    <string name="orientation_saved">%1$s landscape: %2$s. The app will restart.</string>
+    <string name="touch_off">Off</string>
+    <string name="shizuku_open">Open Shizuku</string>
+    <string name="shizuku_request">Request permission</string>
+    <string name="shizuku_install">Install Shizuku first</string>
+    <string name="shizuku_install_body">Install Shizuku and start it using wireless debugging, then return and try again. Virtual displays and touch input require this service.</string>
+    <string name="shizuku_start">Start the Shizuku service</string>
+    <string name="shizuku_start_body">Open Shizuku, start its service, then return and try again. Start the service again after restarting your phone.</string>
+    <string name="shizuku_allow">Allow CarDeck to use Shizuku</string>
+    <string name="shizuku_allow_body">Request permission and allow CarDeck to use Shizuku, or enable CarDeck in the Shizuku app permissions list.</string>
+    <string name="shizuku_ready">Shizuku ready</string>
+    <string name="phase_01">Connection cancelled</string>
+    <string name="phase_02">Car Wi-Fi disconnected (%1$s)</string>
+    <string name="phase_03">Bluetooth ready. Waiting for your car…</string>
+    <string name="phase_04">Car Wi-Fi details received. Connecting…</string>
+    <string name="phase_05">Could not bind to car Wi-Fi. Reconnect.</string>
+    <string name="phase_06">Connecting to car Wi-Fi %1$s…</string>
+    <string name="phase_07">Switching to car Wi-Fi %1$s…</string>
+    <string name="phase_08">Joining car Wi-Fi %1$s. Mobile data stays available.</string>
+    <string name="phase_09">Connected to car Wi-Fi</string>
+    <string name="phase_10">Connected to car Wi-Fi</string>
+    <string name="phase_11">Cancelled. Turn on Wi-Fi to connect to your car.</string>
+    <string name="phase_12">Turn on Wi-Fi to connect to your car</string>
+    <string name="phase_13">Waiting for Wi-Fi (up to 120 seconds). You can cancel.</string>
+    <string name="phase_14">Connection cancelled</string>
+    <string name="phase_15">Wi-Fi is off. Cannot connect to your car.</string>
+    <string name="phase_16">Could not join car Wi-Fi. Connect manually in Wi-Fi settings.</string>
+    <string name="phase_17">Could not join car Wi-Fi. Try connecting again.</string>
+    <string name="phase_18">Connect to %1$s in Wi-Fi settings…</string>
+    <string name="phase_19">Not connected to %1$s. Auto-join stopped.</string>
+    <string name="phase_20">Join %1$s in Wi-Fi settings to connect to your car</string>
+    <string name="phase_21">Could not join car Wi-Fi. Try connecting again.</string>
+    <string name="phase_22">Joining car Wi-Fi %1$s automatically…</string>
+    <string name="phase_23">Auto-join failed. Join %1$s in Wi-Fi settings.</string>
+    <string name="phase_24">Joining %1$s. If the phone switches back, connect manually in Wi-Fi settings.</string>
+    <string name="phase_25">Could not stay on car Wi-Fi. Join %1$s manually.</string>
+    <string name="phase_26">Connected to car Wi-Fi</string>
+    <string name="phase_27">Could not bind to car Wi-Fi %1$s</string>
+    <string name="phase_28">Finding your car on the network…</string>
+    <string name="phase_29">Waiting for connection details from your car…</string>
+    <string name="phase_30">Bluetooth connected. Finding car Wi-Fi…</string>
+    <string name="phase_31">Join %1$s in Wi-Fi settings to connect to your car</string>
+    <string name="phase_32">Pairing with AirPlay…</string>
+    <string name="phase_33">Starting a legacy session…</string>
+    <string name="phase_34">The car rejected the session setup</string>
+    <string name="phase_35">Waiting for the phone to join %1$s…</string>
+    <string name="phase_36">Join %1$s in Wi-Fi settings to connect to your car</string>
+    <string name="phase_paired">Paired. Starting CarPlay…</string>
+    <string name="phase_legacy">Starting a legacy session…</string>
+    <string name="search_desktop_apps">Search app name or package</string>
+    <string name="no_matching_apps">No matching apps</string>
+    <string name="mute_phone_audio">Mute phone media on connection</string>
+    <string name="mute_phone_audio_note">Off by default. Some systems also mute captured audio, leaving the receiver silent. When off, the phone may also play audio. Applies next connection.</string>
+    <string name="switch_current_map">Switch current map (keep default)</string>
+    <string name="swap_dashboard_panes">Swap map and music positions</string>
+    <string name="back_playback_controls">Playback controls</string>
+    <string name="show_car_notifications">Show car notification banners</string>
+    <string name="car_notifications_note">Requires notification access. Shown for 5 seconds; tap to open the app or close from the top right. Message previews are hidden while locked.</string>
+    <string name="new_notification">New notification</string>
+    <string name="recent_apps">Background apps</string>
+    <string name="recent_back">Back</string>
+    <string name="recent_refresh">Refresh</string>
+    <string name="recent_close_all">Close all</string>
+    <string name="recent_close">Close</string>
+    <string name="recent_help">Manage apps open on the car display. Tap an app to switch. Music may keep playing after its window closes.</string>
+    <string name="recent_loading">Loading open apps…</string>
+    <string name="recent_empty">No open apps</string>
+    <string name="recent_count">%1$d open apps</string>
+    <string name="recent_read_failed">Could not load apps. Try again.</string>
+    <string name="recent_open_failed">Could not open app. Refresh and try again.</string>
+    <string name="recent_close_failed">Some windows could not close. Refresh and try again.</string>
+    <string name="recent_open_app">Open %1$s</string>
+    <string name="recent_close_app">Close %1$s</string>
+    <string name="search_map_apps">Search apps</string>
+</resources>

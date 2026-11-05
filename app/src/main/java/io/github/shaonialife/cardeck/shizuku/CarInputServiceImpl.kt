@@ -38,6 +38,115 @@ class CarInputServiceImpl(
     @Volatile
     private var physicalScreenOff = false
 
+    @Volatile
+    private var outputRecorder: android.media.AudioRecord? = null
+    private var outputPipe: android.os.ParcelFileDescriptor? = null
+
+    /** shell 输出采集绕开普通播放捕获的应用 opt-out，不使用麦克风源。 */
+    @SuppressLint("MissingPermission", "WrongConstant", "SoonBlockedPrivateApi", "PrivateApi")
+    @Synchronized
+    override fun startAudioCapture(
+        sampleRate: Int,
+        channels: Int,
+    ): android.os.ParcelFileDescriptor? {
+        stopAudioCapture()
+        if (sampleRate !in listOf(44100, 48000) || channels != 2) return null
+        val identity = android.os.Binder.clearCallingIdentity()
+        var reader: android.os.ParcelFileDescriptor? = null
+        var writer: android.os.ParcelFileDescriptor? = null
+        var recorder: android.media.AudioRecord? = null
+        return try {
+            // AudioRecord 需要实际 shell UID 的 attribution，不能沿用主应用包名。
+            val shellContext =
+                object : android.content.ContextWrapper(context) {
+                    override fun getPackageName(): String = "com.android.shell"
+
+                    override fun getOpPackageName(): String = "com.android.shell"
+
+                    override fun getAttributionSource(): android.content.AttributionSource =
+                        android.content.AttributionSource
+                            .Builder(android.os.Process.myUid())
+                            .setPackageName("com.android.shell")
+                            .build()
+                }
+            val format =
+                android.media.AudioFormat
+                    .Builder()
+                    .setSampleRate(sampleRate)
+                    .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT)
+                    .setChannelMask(android.media.AudioFormat.CHANNEL_IN_STEREO)
+                    .build()
+            val builder =
+                android.media.AudioRecord
+                    .Builder()
+                    .setAudioSource(8)
+                    .setAudioFormat(format)
+            android.media.AudioRecord.Builder::class.java
+                .getMethod("setContext", Context::class.java)
+                .invoke(builder, shellContext)
+            val minimum =
+                android.media.AudioRecord.getMinBufferSize(
+                    sampleRate,
+                    android.media.AudioFormat.CHANNEL_IN_STEREO,
+                    android.media.AudioFormat.ENCODING_PCM_16BIT,
+                )
+            recorder = builder.setBufferSizeInBytes(maxOf(minimum, 4096) * 4).build()
+            check(recorder.state == android.media.AudioRecord.STATE_INITIALIZED)
+            recorder.startRecording()
+            check(recorder.recordingState == android.media.AudioRecord.RECORDSTATE_RECORDING)
+            val pipe = android.os.ParcelFileDescriptor.createPipe()
+            reader = pipe[0]
+            writer = pipe[1]
+            outputRecorder = recorder
+            outputPipe = writer
+            val activeRecorder = requireNotNull(recorder)
+            val activeWriter = requireNotNull(writer)
+            Thread({
+                try {
+                    android.os.ParcelFileDescriptor.AutoCloseOutputStream(activeWriter).use { stream ->
+                        val pcm = ByteArray(4096)
+                        while (outputRecorder === activeRecorder) {
+                            val read = activeRecorder.read(pcm, 0, pcm.size, android.media.AudioRecord.READ_BLOCKING)
+                            if (read <= 0) break
+                            stream.write(pcm, 0, read)
+                        }
+                    }
+                } catch (error: Exception) {
+                    fileLog("system audio pipe ended: ${error.message}")
+                } finally {
+                    synchronized(this) {
+                        if (outputRecorder === activeRecorder) stopAudioCapture()
+                    }
+                }
+            }, "shell-audio-output").apply {
+                isDaemon = true
+                start()
+            }
+            fileLog("system audio started: REMOTE_SUBMIX ${sampleRate}Hz stereo")
+            reader
+        } catch (error: Throwable) {
+            runCatching { recorder?.release() }
+            runCatching { reader?.close() }
+            runCatching { writer?.close() }
+            outputRecorder = null
+            outputPipe = null
+            fileLog("system audio unavailable: $error")
+            null
+        } finally {
+            android.os.Binder.restoreCallingIdentity(identity)
+        }
+    }
+
+    @Synchronized
+    override fun stopAudioCapture() {
+        val recorder = outputRecorder
+        outputRecorder = null
+        runCatching { recorder?.stop() }
+        runCatching { recorder?.release() }
+        runCatching { outputPipe?.close() }
+        outputPipe = null
+    }
+
     /**
      * 僵尸自清（治本，2026-10-16）：Shizuku 按「组件+进程名+版本(APK lastUpdateTime)」复用
      * 常驻 UserService 进程。重装 APK 后旧版本进程既不受 force-stop 影响、Shizuku 也不回收；

@@ -35,8 +35,8 @@ abstract class SettingsPanelFragment : Fragment() {
         Bg.run("apps-scan") {
             val scanned = VirtualLauncher.launchableApps(appContext)
             VirtualLauncher.adoptAppsCache(scanned)
-            requireActivity().runOnUiThread {
-                if (!isAdded || isDetached) return@runOnUiThread
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                if (!isAdded || isDetached || view == null) return@post
                 apps = scanned
                 onReady()
             }

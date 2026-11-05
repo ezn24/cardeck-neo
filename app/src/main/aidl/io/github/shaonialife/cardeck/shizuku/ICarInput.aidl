@@ -4,6 +4,8 @@ package io.github.shaonialife.cardeck.shizuku;
 
 import android.view.Surface;
 
+import android.os.ParcelFileDescriptor;
+
 interface ICarInput {
     boolean tap(int displayId, int x, int y);
     boolean swipe(int displayId, int startX, int startY, int endX, int endY, int durationMs);
@@ -47,4 +49,7 @@ interface ICarInput {
     // 服务进程 PID：应用侧清理「非当前绑定进程」的陈旧 UserService 时用于排除自己
     // （旧进程持有的虚拟屏跨进程无法 release，杀进程是唯一释放途径，见 CarInputClient）。
     int pid();
+    // 仅系统输出 REMOTE_SUBMIX；不采集麦克风。
+    ParcelFileDescriptor startAudioCapture(int sampleRate, int channels);
+    void stopAudioCapture();
 }

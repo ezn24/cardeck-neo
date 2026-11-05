@@ -6,6 +6,8 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
 import android.util.Log
+import io.github.shaonialife.cardeck.R
+import io.github.shaonialife.cardeck.ui.UiStrings
 import io.github.shaonialife.cardeck.util.Bg
 import moe.shizuku.server.IShizukuService
 import java.io.FileInputStream
@@ -43,6 +45,29 @@ object ShizukuGate {
             }
         }
     }
+
+    internal fun localizedGuidanceOf(state: State): ShizukuGuidance =
+        when (state) {
+            State.NOT_INSTALLED ->
+                ShizukuGuidance(
+                    UiStrings.text(R.string.shizuku_install),
+                    UiStrings.text(R.string.shizuku_install_body),
+                    null,
+                )
+            State.NOT_RUNNING ->
+                ShizukuGuidance(
+                    UiStrings.text(R.string.shizuku_start),
+                    UiStrings.text(R.string.shizuku_start_body),
+                    UiStrings.text(R.string.shizuku_open),
+                )
+            State.UNAUTHORIZED ->
+                ShizukuGuidance(
+                    UiStrings.text(R.string.shizuku_allow),
+                    UiStrings.text(R.string.shizuku_allow_body),
+                    UiStrings.text(R.string.shizuku_request),
+                )
+            State.READY -> ShizukuGuidance(UiStrings.text(R.string.shizuku_ready), "", null)
+        }
 
     fun requestPermission() {
         try {

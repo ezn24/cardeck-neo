@@ -20,6 +20,7 @@ import io.github.shaonialife.cardeck.launcher.SupersamplePrefs
 import io.github.shaonialife.cardeck.launcher.VirtualLauncher
 import io.github.shaonialife.cardeck.launcher.settings.AppRowsAdapter.AppHolder
 import io.github.shaonialife.cardeck.ui.DarkMessageDialog
+import io.github.shaonialife.cardeck.ui.UiStrings
 import io.github.shaonialife.cardeck.util.Bg
 
 /**
@@ -30,6 +31,7 @@ class DesktopPanelFragment : SettingsPanelFragment() {
     private var countText: TextView? = null
     private var selected: MutableSet<String> = mutableSetOf()
     private lateinit var adapter: DesktopAdapter
+    private var searchQuery = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,15 +42,52 @@ class DesktopPanelFragment : SettingsPanelFragment() {
     override fun onViewCreated(view: View) {
         countText = view.findViewById(R.id.settingsCount)
         adapter = DesktopAdapter()
+        val search = view.findViewById<android.widget.EditText>(R.id.desktopSearch)
+        val empty = view.findViewById<View>(R.id.desktopSearchEmpty)
+
+        fun refreshSearch() {
+            adapter.notifyDataSetChanged()
+            empty.visibility = if (apps.isNotEmpty() && filteredApps().isEmpty()) View.VISIBLE else View.GONE
+            view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.appList).scrollToPosition(0)
+        }
+        search.setText(searchQuery)
+        search.addTextChangedListener(
+            object : android.text.TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) {
+                    searchQuery = s?.toString().orEmpty()
+                    refreshSearch()
+                }
+
+                override fun afterTextChanged(s: android.text.Editable?) = Unit
+            },
+        )
         setupAppList(view, R.id.appList, R.id.appListIndex, adapter) {
             selected.clear()
             selected += DesktopApps.selected(requireContext(), apps)
             updateCount()
+            refreshSearch()
         }
     }
 
+    private fun filteredApps(): List<VirtualLauncher.AppEntry> =
+        apps.filter {
+            matchesAppSearch(searchQuery, it.label, it.component.packageName)
+        }
+
     private fun updateCount() {
-        countText?.text = "已选 ${selected.size} 个"
+        countText?.text = UiStrings.format(R.string.selected_apps, selected.size)
     }
 
     private fun toggle(
@@ -59,11 +98,11 @@ class DesktopPanelFragment : SettingsPanelFragment() {
         if (checked) selected.add(key) else selected.remove(key)
         DesktopApps.save(requireContext(), selected)
         updateCount()
-        hostToast(if (checked) "「${entry.label}」已显示到桌面" else "「${entry.label}」已从桌面移除")
+        hostToast(if (checked) UiStrings.format(R.string.app_shown, entry.label) else UiStrings.format(R.string.app_hidden, entry.label))
         adapter.notifyDataSetChanged()
     }
 
-    private inner class DesktopAdapter : AppRowsAdapter(this@DesktopPanelFragment, R.layout.item_app_pick, { apps }) {
+    private inner class DesktopAdapter : AppRowsAdapter(this@DesktopPanelFragment, R.layout.item_app_pick, { filteredApps() }) {
         override fun onCreateAppHolder(row: View): AppHolder = PickerHolder(row)
     }
 
@@ -129,11 +168,29 @@ class SupersamplePanelFragment : SettingsPanelFragment() {
             ) {
                 SupersamplePrefs.setMode(requireContext(), entry.component, mode)
                 refresh(mode)
-                hostToast("「${entry.label}」超采样：$label（下次启动生效）")
+                hostToast(UiStrings.format(R.string.supersampling_saved, entry.label, label))
             }
-            segAuto.setOnClickListener { pick(SupersamplePrefs.MODE_AUTO, "自动") }
-            segOn.setOnClickListener { pick(SupersamplePrefs.MODE_ON, "开启") }
-            segOff.setOnClickListener { pick(SupersamplePrefs.MODE_OFF, "关闭") }
+            segAuto.setOnClickListener {
+                pick(
+                    SupersamplePrefs.MODE_AUTO,
+                    UiStrings
+                        .text(R.string.ui_106),
+                )
+            }
+            segOn.setOnClickListener {
+                pick(
+                    SupersamplePrefs.MODE_ON,
+                    UiStrings
+                        .text(R.string.ui_107),
+                )
+            }
+            segOff.setOnClickListener {
+                pick(
+                    SupersamplePrefs.MODE_OFF,
+                    UiStrings
+                        .text(R.string.ui_108),
+                )
+            }
         }
 
         private fun refresh(mode: Int) {
@@ -224,8 +281,10 @@ class OrientationPanelFragment : SettingsPanelFragment() {
         }
         banner.visibility = View.VISIBLE
         banner.text =
-            "本机系统不支持该功能：需要 Android 14 及以上" +
-            "（这两个横屏兼容项自 Android 14 起才进入平台）。\n" +
+            UiStrings
+                .text(R.string.ui_117) +
+            UiStrings
+                .text(R.string.ui_118) +
             "当前 Android ${android.os.Build.VERSION.RELEASE}" +
             "（SDK ${android.os.Build.VERSION.SDK_INT}），开关置灰不可用。"
         // 整列变暗表达「不可操作」；点击事件在 OriHolder 里按 supported 拦截
@@ -260,21 +319,33 @@ class OrientationPanelFragment : SettingsPanelFragment() {
             val host = activity ?: return@setOnClickListener
             DarkMessageDialog.show(
                 activity = host,
-                title = "清除横屏残留",
+                title =
+                    UiStrings
+                        .text(R.string.ui_119),
                 message =
-                    "以下条目已不在应用列表，但系统侧横屏覆盖仍开着：\n" +
+                    UiStrings
+                        .text(R.string.ui_120) +
                         orphans.joinToString("\n") { "· $it" } +
-                        "\n\n清除会立即重启在运行的这些应用（未保存的界面状态会丢失）；" +
-                        "已卸载的条目不受影响。是否继续？",
+                        UiStrings
+                            .text(R.string.ui_121) +
+                        UiStrings
+                            .text(R.string.ui_122),
                 actions =
                     listOf(
-                        DarkMessageDialog.Action("取消") {},
-                        DarkMessageDialog.Action("清除", DarkMessageDialog.Emphasis.DANGER) {
+                        DarkMessageDialog.Action(
+                            UiStrings
+                                .text(R.string.ui_081),
+                        ) {},
+                        DarkMessageDialog.Action(
+                            UiStrings
+                                .text(R.string.ui_123),
+                            DarkMessageDialog.Emphasis.DANGER,
+                        ) {
                             Bg.run("orientation-orphan-clear") {
                                 val cleared = orphans.count { AppOrientationCompat.clearSystemOnly(it) }
                                 activity?.runOnUiThread {
                                     if (!isAdded || isDetached) return@runOnUiThread
-                                    hostToast("已清除 $cleared/${orphans.size} 个横屏残留")
+                                    hostToast(UiStrings.format(R.string.overrides_cleared, cleared, orphans.size))
                                     systemOn = systemOn - orphans.toSet()
                                     listAdapter.notifyDataSetChanged()
                                     updateOrphanBanner()
@@ -331,7 +402,13 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                             // （2026-10-15 实测：enable/disable 后 pid 立即消失）。旧的「查活 +
                             // 询问是否结束」流程问的是已被系统杀掉的应用，pidof 又与击杀竞态、
                             // 提示时对时错（「未在运行」误导），整体移除、如实告知即可。
-                            hostToast("「${entry.label}」横屏：${if (target) "开" else "关"}——应用将以新设置重启")
+                            hostToast(
+                                UiStrings.format(
+                                    R.string.orientation_saved,
+                                    entry.label,
+                                    if (target) UiStrings.text(R.string.ui_085) else UiStrings.text(R.string.ui_086),
+                                ),
+                            )
                         }
 
                         AppOrientationCompat.WriteResult.UNSUPPORTED -> {
@@ -341,9 +418,11 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                             applyCapabilityState()
                             hostToast(
                                 if (AppOrientationCompat.changeIdsRegistered()) {
-                                    "系统限制：user 版本只能修改可调试(debuggable)应用的兼容设置"
+                                    UiStrings
+                                        .text(R.string.ui_124)
                                 } else {
-                                    "本机系统不支持该功能（需 Android 14 及以上）"
+                                    UiStrings
+                                        .text(R.string.ui_125)
                                 },
                             )
                         }
@@ -351,7 +430,10 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                         AppOrientationCompat.WriteResult.FAILED -> {
                             shown = !target
                             refresh(shown)
-                            hostToast("写入失败（Shizuku 未就绪或超时）——可稍后重试")
+                            hostToast(
+                                UiStrings
+                                    .text(R.string.ui_126),
+                            )
                         }
                     }
                 }
@@ -373,7 +455,9 @@ class OrientationPanelFragment : SettingsPanelFragment() {
             val onSystem = systemStateLoaded && pkg() in systemOn
             when {
                 onSystem && enabled -> {
-                    hint.text = "已开启横屏（会话期间生效）"
+                    hint.text =
+                        UiStrings
+                            .text(R.string.ui_127)
                     hint.setTextColor(0xFF8E8E93.toInt())
                     hint.visibility = View.VISIBLE
                     hint.setOnClickListener(null)
@@ -381,7 +465,9 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                 }
 
                 onSystem -> {
-                    hint.text = "系统残留：横屏仍在生效 · 点击清除"
+                    hint.text =
+                        UiStrings
+                            .text(R.string.ui_128)
                     hint.setTextColor(0xFFFF6B6B.toInt())
                     hint.visibility = View.VISIBLE
                     hint.isClickable = true
@@ -390,14 +476,24 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                         val host = activity ?: return@setOnClickListener
                         DarkMessageDialog.show(
                             activity = host,
-                            title = "清除横屏残留",
+                            title =
+                                UiStrings
+                                    .text(R.string.ui_119),
                             message =
                                 "「${entry.label}」的系统侧横屏覆盖仍在生效（可能是卸载前的残留）。" +
-                                    "\n\n清除会立即重启该应用（正在运行的应用会丢失未保存的界面状态）。是否继续？",
+                                    UiStrings
+                                        .text(R.string.ui_129),
                             actions =
                                 listOf(
-                                    DarkMessageDialog.Action("取消") {},
-                                    DarkMessageDialog.Action("清除", DarkMessageDialog.Emphasis.DANGER) {
+                                    DarkMessageDialog.Action(
+                                        UiStrings
+                                            .text(R.string.ui_081),
+                                    ) {},
+                                    DarkMessageDialog.Action(
+                                        UiStrings
+                                            .text(R.string.ui_123),
+                                        DarkMessageDialog.Emphasis.DANGER,
+                                    ) {
                                         Bg.run("orientation-row-clear") {
                                             val ok = AppOrientationCompat.clearSystemOnly(pkg())
                                             activity?.runOnUiThread {
@@ -405,9 +501,13 @@ class OrientationPanelFragment : SettingsPanelFragment() {
                                                 if (ok) {
                                                     systemOn = systemOn - pkg()
                                                     refresh(shown)
-                                                    hostToast("「${entry.label}」横屏残留已清除——应用将重启")
+                                                    hostToast(UiStrings.format(R.string.orientation_cleared, entry.label))
                                                 } else {
-                                                    hostToast("清除失败（Shizuku 异常）")
+                                                    hostToast(
+                                                        UiStrings.text(
+                                                            R.string.ui_130,
+                                                        ),
+                                                    )
                                                 }
                                             }
                                         }
@@ -462,7 +562,7 @@ class DockPanelFragment : SettingsPanelFragment() {
                     val percent =
                         DockPrefs.WIDTH_MIN + widthSeek.progress * DockPrefs.WIDTH_STEP
                     DockPrefs.setWidthPercent(requireContext(), percent)
-                    hostToast("Dock 栏宽度 $percent% 已保存，下次连接起效")
+                    hostToast(UiStrings.format(R.string.dock_scale_saved, percent))
                 }
             },
         )
@@ -523,66 +623,162 @@ class DefaultMapPanelFragment : SettingsPanelFragment() {
     ): View = inflater.inflate(R.layout.fragment_panel_map, container, false)
 
     override fun onViewCreated(view: View) {
+        loadApps {
+            if (isAdded) renderOptions(view)
+        }
+    }
+
+    private fun renderOptions(view: View) {
         val container = view.findViewById<LinearLayout>(R.id.mapOptions)
-        val installed =
-            VirtualLauncher.MAP_PACKAGES_PRIORITY.mapNotNull { pkg ->
-                val launch =
-                    requireContext().packageManager.getLaunchIntentForPackage(pkg)
-                        ?: return@mapNotNull null
-                val label =
-                    runCatching {
-                        requireContext()
-                            .packageManager
-                            .getApplicationInfo(pkg, 0)
-                            .loadLabel(requireContext().packageManager)
-                            .toString()
-                    }.getOrDefault(pkg)
-                pkg to label
-            }
-        if (installed.isEmpty()) {
+        container.removeAllViews()
+        val current = DefaultMapPrefs.resolve(requireContext())?.packageName
+        val suggested =
+            apps
+                .filter {
+                    it.component.packageName in VirtualLauncher.MAP_PACKAGES_PRIORITY ||
+                        it.component.packageName == current
+                }.distinctBy { it.component.packageName }
+        if (VirtualLauncher.mapDisplayId >= 0) {
             container.addView(
-                TextView(requireContext()).apply {
-                    text = "未安装任何受支持的地图应用（高德/百度车机版、高德/百度/腾讯手机版）"
-                    setTextColor(0xFF8E8E93.toInt())
-                    textSize = 13f
+                layoutInflater.inflate(R.layout.item_map_option, container, false).apply {
+                    findViewById<TextView>(R.id.mapOptionName).setText(R.string.switch_current_map)
+                    findViewById<ImageView>(R.id.mapOptionIcon).setImageResource(R.drawable.ic_menu_map)
+                    findViewById<ImageView>(R.id.mapOptionRadio).setImageResource(R.drawable.ic_chevron_right)
+                    setOnClickListener {
+                        showMapPicker(R.string.switch_current_map, apps, VirtualLauncher.currentMapPackage() ?: current) { entry ->
+                            Bg.run("switch-map") { VirtualLauncher.switchMap(entry.component) }
+                        }
+                    }
                 },
             )
-            return
         }
-        var current =
-            DefaultMapPrefs.manualPackage(requireContext())
-                ?: installed.firstOrNull()?.first
-        installed.forEach { (pkg, label) ->
+        suggested.forEach { entry ->
             val row = layoutInflater.inflate(R.layout.item_map_option, container, false)
+            row.findViewById<TextView>(R.id.mapOptionName).text = entry.label
             val iconPx = (34 * resources.displayMetrics.density).toInt()
-            val appIcon =
-                runCatching {
-                    requireContext().packageManager.getApplicationIcon(pkg)
-                }.getOrNull()
-            if (appIcon != null) {
-                row
-                    .findViewById<ImageView>(R.id.mapOptionIcon)
-                    .setImageBitmap(AppIcons.rounded(appIcon, iconPx))
-            }
-            row.findViewById<TextView>(R.id.mapOptionName).text = label
-            val radio = row.findViewById<ImageView>(R.id.mapOptionRadio)
-
-            fun refresh() {
-                radio.setImageResource(
-                    if (pkg == current) R.drawable.bg_radio_on else R.drawable.bg_radio_off,
-                )
-            }
-            refresh()
-            row.setOnClickListener {
-                current = pkg
-                DefaultMapPrefs.set(requireContext(), pkg)
-                for (i in 0 until container.childCount) {
-                    (container.getChildAt(i).tag as? (() -> Unit))?.invoke()
-                }
-                hostToast("默认地图：$label")
-            }
-            row.tag = { refresh() }
+            row
+                .findViewById<ImageView>(R.id.mapOptionIcon)
+                .setImageBitmap(AppIcons.rounded(entry.icon, iconPx))
+            row.findViewById<ImageView>(R.id.mapOptionRadio).setImageResource(
+                if (entry.component.packageName == current) R.drawable.bg_radio_on else R.drawable.bg_radio_off,
+            )
+            row.setOnClickListener { select(entry.component.packageName, view) }
             container.addView(row)
+        }
+        container.addView(
+            layoutInflater.inflate(R.layout.item_map_option, container, false).apply {
+                findViewById<TextView>(R.id.mapOptionName).setText(R.string.choose_other_map)
+                findViewById<ImageView>(R.id.mapOptionIcon).setImageResource(R.drawable.ic_menu_grid)
+                findViewById<ImageView>(R.id.mapOptionRadio).apply {
+                    setImageResource(R.drawable.ic_chevron_right)
+                    imageTintList =
+                        android.content.res.ColorStateList
+                            .valueOf(0xFF8E8E93.toInt())
+                }
+                isFocusable = true
+                setOnClickListener {
+                    showMapPicker(R.string.choose_other_map, apps, current) { entry ->
+                        select(entry.component.packageName, view)
+                    }
+                }
+            },
+        )
+    }
+
+    private fun showMapPicker(
+        title: Int,
+        candidates: List<VirtualLauncher.AppEntry>,
+        selected: String?,
+        onSelect: (VirtualLauncher.AppEntry) -> Unit,
+    ) {
+        val ctx = requireContext()
+        val body = layoutInflater.inflate(R.layout.dialog_map_picker, null)
+        val list = body.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.mapPickerList)
+        val search = body.findViewById<android.widget.EditText>(R.id.mapPickerSearch)
+        val empty = body.findViewById<View>(R.id.mapPickerEmpty)
+        val all = candidates.distinctBy { it.component.packageName }
+        var filtered = all
+        val dialog =
+            androidx.appcompat.app.AlertDialog
+                .Builder(ctx, R.style.CarDeckAppPicker)
+                .setTitle(title)
+                .setView(body)
+                .create()
+
+        class Row(
+            val root: View,
+        ) : androidx.recyclerview.widget.RecyclerView.ViewHolder(root)
+        val adapter =
+            object : androidx.recyclerview.widget.RecyclerView.Adapter<Row>() {
+                override fun getItemCount(): Int = filtered.size
+
+                override fun onCreateViewHolder(
+                    parent: ViewGroup,
+                    viewType: Int,
+                ): Row = Row(layoutInflater.inflate(R.layout.item_map_option, parent, false))
+
+                override fun onBindViewHolder(
+                    holder: Row,
+                    position: Int,
+                ) {
+                    val entry = filtered[position]
+                    holder.root.findViewById<TextView>(R.id.mapOptionName).text = entry.label
+                    holder.root.findViewById<ImageView>(R.id.mapOptionIcon).setImageBitmap(
+                        AppIcons.rounded(entry.icon, (34 * resources.displayMetrics.density).toInt()),
+                    )
+                    holder.root.findViewById<ImageView>(R.id.mapOptionRadio).setImageResource(
+                        if (entry.component.packageName == selected) R.drawable.bg_radio_on else R.drawable.bg_radio_off,
+                    )
+                    holder.root.setOnClickListener {
+                        dialog.dismiss()
+                        onSelect(entry)
+                    }
+                }
+            }
+        list.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
+        list.adapter = adapter
+        empty.visibility = if (all.isEmpty()) View.VISIBLE else View.GONE
+        search.addTextChangedListener(
+            object : android.text.TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
+
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) {
+                    filtered = all.filter { matchesAppSearch(s?.toString().orEmpty(), it.label, it.component.packageName) }
+                    empty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+                    adapter.notifyDataSetChanged()
+                    list.scrollToPosition(0)
+                }
+
+                override fun afterTextChanged(s: android.text.Editable?) = Unit
+            },
+        )
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        dialog.show()
+    }
+
+    private fun select(
+        pkg: String,
+        view: View,
+    ) {
+        DefaultMapPrefs.set(requireContext(), pkg)
+        renderOptions(view)
+        val context = requireContext().applicationContext
+        Bg.run("default-map-changed") {
+            if (VirtualLauncher.mapFullscreen) {
+                DefaultMapPrefs.resolve(context)?.let { VirtualLauncher.launchApp(it) }
+            } else if (VirtualLauncher.dashboardMode) {
+                DefaultMapPrefs.resolve(context)?.let { VirtualLauncher.switchMap(it) }
+            }
         }
     }
 }
@@ -601,6 +797,109 @@ class DisplayPanelFragment : SettingsPanelFragment() {
 
     override fun onViewCreated(view: View) {
         val ctx = requireContext()
+        val content = (view as android.widget.ScrollView).getChildAt(0) as LinearLayout
+        content.addView(
+            TextView(ctx).apply {
+                setText(R.string.language)
+                textSize = 16f
+                setTextColor(0xFFF5F5F7.toInt())
+            },
+            0,
+        )
+        content.addView(
+            android.widget.Spinner(ctx).apply {
+                val tags = listOf("", "zh-Hant", "zh-Hans", "en")
+                adapter =
+                    android.widget.ArrayAdapter(
+                        ctx,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        listOf(getString(R.string.follow_system), "繁體中文", "简体中文", "English"),
+                    )
+                setSelection(
+                    tags
+                        .indexOf(
+                            io.github.shaonialife.cardeck.ui.AppLanguage
+                                .current(ctx),
+                        ).coerceAtLeast(0),
+                )
+                onItemSelectedListener =
+                    object : android.widget.AdapterView.OnItemSelectedListener {
+                        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+
+                        override fun onItemSelected(
+                            parent: android.widget.AdapterView<*>?,
+                            selected: View?,
+                            position: Int,
+                            id: Long,
+                        ) {
+                            val tag = tags[position]
+                            if (tag !=
+                                io.github.shaonialife.cardeck.ui.AppLanguage
+                                    .current(ctx)
+                            ) {
+                                io.github.shaonialife.cardeck.ui.AppLanguage
+                                    .set(ctx, tag)
+                            }
+                        }
+                    }
+            },
+            1,
+        )
+        content.addView(
+            TextView(ctx).apply {
+                setText(R.string.dashboard_layout_note)
+                textSize = 13f
+                setTextColor(0xFF8E8E93.toInt())
+                setPadding(0, 12, 0, 18)
+            },
+            2,
+        )
+        content.addView(
+            androidx.appcompat.widget.SwitchCompat(ctx).apply {
+                setText(R.string.mute_phone_audio)
+                setTextColor(0xFFF5F5F7.toInt())
+                isChecked = DisplayPrefs.mutePhoneAudio(ctx)
+                setOnCheckedChangeListener { _, checked -> DisplayPrefs.setMutePhoneAudio(ctx, checked) }
+            },
+            3,
+        )
+        content.addView(
+            TextView(ctx).apply {
+                setText(R.string.mute_phone_audio_note)
+                textSize = 12f
+                setTextColor(0xFF8E8E93.toInt())
+            },
+            4,
+        )
+        content.addView(
+            androidx.appcompat.widget.SwitchCompat(ctx).apply {
+                setText(R.string.swap_dashboard_panes)
+                setTextColor(0xFFF5F5F7.toInt())
+                isChecked =
+                    ctx
+                        .getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                        .getBoolean("dashboardPanesSwapped", false)
+                setOnCheckedChangeListener { _, checked -> VirtualLauncher.setDashboardPanesSwapped(ctx, checked) }
+            },
+            3,
+        )
+        content.addView(
+            androidx.appcompat.widget.SwitchCompat(ctx).apply {
+                setText(R.string.show_car_notifications)
+                setTextColor(0xFFF5F5F7.toInt())
+                isChecked = DisplayPrefs.showCarNotifications(ctx)
+                setOnCheckedChangeListener { _, enabled -> DisplayPrefs.setShowCarNotifications(ctx, enabled) }
+            },
+            3,
+        )
+        content.addView(
+            TextView(ctx).apply {
+                setText(R.string.car_notifications_note)
+                textSize = 12f
+                setTextColor(0xFF8E8E93.toInt())
+            },
+            4,
+        )
         val scaleSeek = view.findViewById<SeekBar>(R.id.displayScaleSeek)
         val scaleValue = view.findViewById<TextView>(R.id.displayScaleValue)
         val scaleNote = view.findViewById<TextView>(R.id.displayScaleNote)
@@ -632,7 +931,16 @@ class DisplayPanelFragment : SettingsPanelFragment() {
             refreshScreenOff(enabled)
             // 车机屏上就能操作：立即收放，不必等下次连接
             SessionController.applyScreenOffPreference(enabled)
-            hostToast(if (enabled) "已开启：连接时物理息屏" else "已关闭：连接时只用暗幕")
+            hostToast(
+                if (enabled) {
+                    UiStrings.text(
+                        R.string.ui_131,
+                    )
+                } else {
+                    UiStrings
+                        .text(R.string.ui_132)
+                },
+            )
         }
         screenOffOn.setOnClickListener { applyScreenOff(true) }
         screenOffOff.setOnClickListener { applyScreenOff(false) }
@@ -660,7 +968,16 @@ class DisplayPanelFragment : SettingsPanelFragment() {
             autoConnectEnabled = enabled
             AutoConnectPrefs.setEnabled(ctx, enabled)
             refreshAutoConnect(enabled)
-            hostToast(if (enabled) "已开启：上车自动连接" else "已关闭：上车不再自动启动")
+            hostToast(
+                if (enabled) {
+                    UiStrings.text(
+                        R.string.ui_133,
+                    )
+                } else {
+                    UiStrings
+                        .text(R.string.ui_134)
+                },
+            )
         }
         autoConnectOn.setOnClickListener { applyAutoConnect(true) }
         autoConnectOff.setOnClickListener { applyAutoConnect(false) }
@@ -688,7 +1005,16 @@ class DisplayPanelFragment : SettingsPanelFragment() {
             hidRawEnabled = enabled
             DisplayPrefs.setHidRawLog(ctx, enabled)
             refreshHidRaw(enabled)
-            hostToast(if (enabled) "已开启 HID 原始日志（校准完请关掉）" else "已关闭 HID 原始日志")
+            hostToast(
+                if (enabled) {
+                    UiStrings.text(
+                        R.string.ui_135,
+                    )
+                } else {
+                    UiStrings
+                        .text(R.string.ui_136)
+                },
+            )
         }
         hidRawOn.setOnClickListener { applyHidRaw(true) }
         hidRawOff.setOnClickListener { applyHidRaw(false) }
@@ -708,10 +1034,12 @@ class DisplayPanelFragment : SettingsPanelFragment() {
                     ?.isRunning == true
             scaleNote.text =
                 if (runningNow) {
-                    "保存后下次连接起效；当前连接按 " +
-                        "${SessionController.activeScalePercent}% 运行"
+                    UiStrings
+                        .text(R.string.ui_137) +
+                        UiStrings.format(R.string.resolution_active, SessionController.activeScalePercent)
                 } else {
-                    "保存后下次连接起效"
+                    UiStrings
+                        .text(R.string.ui_093)
                 }
         }
         refreshScaleNote()
@@ -732,7 +1060,7 @@ class DisplayPanelFragment : SettingsPanelFragment() {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {
                     val percent = percentOf(scaleSeek.progress)
                     DisplayPrefs.setScalePercent(ctx, percent)
-                    hostToast("分辨率 $percent% 已保存，下次连接起效")
+                    hostToast(UiStrings.format(R.string.resolution_saved, percent))
                     refreshScaleNote()
                 }
             },
@@ -765,7 +1093,7 @@ class DisplayPanelFragment : SettingsPanelFragment() {
             val live =
                 SessionController.videoSender
                     ?.isRunning == true
-            hostToast("帧率已切换为 ${fps}fps${if (live) "（实时生效）" else ""}")
+            hostToast(UiStrings.format(R.string.frame_rate_saved, fps))
             if (live) SessionController.activeTargetFps = fps
         }
         fps30.setOnClickListener { applyFps(30) }
@@ -775,7 +1103,7 @@ class DisplayPanelFragment : SettingsPanelFragment() {
         val throttleSeek = view.findViewById<SeekBar>(R.id.throttleSeek)
         val throttleValue = view.findViewById<TextView>(R.id.throttleValue)
 
-        fun throttleText(ms: Int) = if (ms <= 0) "关闭" else "${ms}ms"
+        fun throttleText(ms: Int) = if (ms <= 0) UiStrings.text(R.string.touch_off) else "${ms}ms"
 
         val savedThrottle = DisplayPrefs.moveThrottleMs(ctx)
         throttleSeek.progress = savedThrottle / 8
@@ -800,7 +1128,9 @@ class DisplayPanelFragment : SettingsPanelFragment() {
 
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {
                     hostToast(
-                        "触摸节流 " + throttleText(DisplayPrefs.moveThrottleMs(ctx)),
+                        UiStrings
+                            .text(R.string.ui_138) +
+                            throttleText(DisplayPrefs.moveThrottleMs(ctx)),
                     )
                 }
             },

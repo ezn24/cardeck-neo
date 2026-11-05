@@ -21,6 +21,43 @@ object DisplayPrefs {
 
     const val FPS_DEFAULT = 30
 
+    fun showCarNotifications(context: Context): Boolean =
+        context
+            .getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("showCarNotifications", false)
+
+    fun setShowCarNotifications(
+        context: Context,
+        enabled: Boolean,
+    ) {
+        context
+            .getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("showCarNotifications", enabled)
+            .apply()
+        if (!enabled) {
+            io.github.shaonialife.cardeck.notifications.NotificationBannerController
+                .clear()
+        }
+    }
+
+    /** 部分 ROM 的播放捕获受媒体流音量影响，默认不全局静音。 */
+    fun mutePhoneAudio(context: Context): Boolean =
+        context
+            .getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("mutePhoneAudio", false)
+
+    fun setMutePhoneAudio(
+        context: Context,
+        enabled: Boolean,
+    ) {
+        context
+            .getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("mutePhoneAudio", enabled)
+            .apply()
+    }
+
     /** 触摸 move 注入节流默认值（ms）：0=默认关闭，交互滞后时在「显示」面板调高试验。 */
     const val MOVE_THROTTLE_DEFAULT = 0
     const val MOVE_THROTTLE_MAX = 48

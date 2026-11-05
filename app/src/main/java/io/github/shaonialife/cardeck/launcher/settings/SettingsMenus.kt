@@ -2,6 +2,7 @@ package io.github.shaonialife.cardeck.launcher.settings
 
 import androidx.fragment.app.Fragment
 import io.github.shaonialife.cardeck.R
+import io.github.shaonialife.cardeck.ui.UiStrings
 
 /** 车机设置菜单注册表：车机双栏与手机二级菜单共用（菜单项/标题/Fragment 工厂）。 */
 object SettingsMenus {
@@ -19,14 +20,56 @@ object SettingsMenus {
         val iconRes: Int,
     )
 
-    val ALL =
+    val ALL get() =
         listOf(
-            Item(DESKTOP, "管理桌面应用", "勾选的应用显示在车机桌面", R.drawable.ic_menu_grid),
-            Item(SUPERSAMPLE, "应用超采样", "竖屏应用渲染更精细，可三态调节", R.drawable.ic_menu_zoom),
-            Item(ORIENTATION, "应用横屏", "竖屏应用在车机横屏全屏显示", R.drawable.ic_screen_rotation),
-            Item(DOCK, "dock 栏设置", "壁纸暗幕透明度与模糊程度", R.drawable.ic_menu_dock),
-            Item(DEFAULT_MAP, "默认地图", "仪表盘地图屏使用的地图应用", R.drawable.ic_menu_map),
-            Item(DISPLAY, "显示", "流分辨率缩放与目标帧率", R.drawable.ic_menu_display),
+            Item(
+                DESKTOP,
+                UiStrings
+                    .text(R.string.ui_066),
+                UiStrings
+                    .text(R.string.ui_139),
+                R.drawable.ic_menu_grid,
+            ),
+            Item(
+                SUPERSAMPLE,
+                UiStrings
+                    .text(R.string.ui_067),
+                UiStrings
+                    .text(R.string.ui_140),
+                R.drawable.ic_menu_zoom,
+            ),
+            Item(
+                ORIENTATION,
+                UiStrings
+                    .text(R.string.ui_068),
+                UiStrings
+                    .text(R.string.ui_141),
+                R.drawable.ic_screen_rotation,
+            ),
+            Item(
+                DOCK,
+                UiStrings
+                    .text(R.string.ui_069),
+                UiStrings
+                    .text(R.string.ui_142),
+                R.drawable.ic_menu_dock,
+            ),
+            Item(
+                DEFAULT_MAP,
+                UiStrings
+                    .text(R.string.ui_070),
+                UiStrings
+                    .text(R.string.ui_143),
+                R.drawable.ic_menu_map,
+            ),
+            Item(
+                DISPLAY,
+                UiStrings
+                    .text(R.string.ui_071),
+                UiStrings
+                    .text(R.string.ui_144),
+                R.drawable.ic_menu_display,
+            ),
         )
 
     fun titleOf(id: Int): String = ALL.first { it.id == id }.title

@@ -43,6 +43,9 @@ object TouchRouter {
 
     /** 分屏把手粘性路由状态（命中把手条后整条触摸流固定路由应用屏）。 */
     private var splitHandlePressed = false
+    private var dashboardMapGesture = false
+    private val dashboardSwipe = DashboardSwipeGesture()
+    private val touchReleases = TouchReleaseTracker()
 
     /**
      * MOVE 注入节流：0 = 关闭；>0 时距上次注入不足该毫秒数的 move
@@ -80,10 +83,9 @@ object TouchRouter {
 
     fun onContact(
         context: Context,
-        contact: Contact,
+        report: Contact,
     ) {
-        // 空闲槽占位（未按下且 0,0）忽略
-        if (!contact.down && contact.xPixels == 0 && contact.yPixels == 0) return
+        val contact = touchReleases.accept(report) ?: return
         val px = (contact.xPixels * coordScaleX).toInt().coerceAtLeast(0)
         val py = (contact.yPixels * coordScaleY).toInt().coerceAtLeast(0)
 
@@ -106,7 +108,72 @@ object TouchRouter {
             }
         }
 
+        if (io.github.shaonialife.cardeck.notifications.NotificationBannerController.onContact(
+                contact.down,
+                px.toFloat(),
+                py.toFloat(),
+            )
+        ) {
+            return
+        }
+        if (io.github.shaonialife.cardeck.launcher.MediaReturnControl
+                .onContact(contact.down, px.toFloat(), py.toFloat(), pressed || dashboardMapGesture)
+        ) {
+            return
+        }
         val launcher = VirtualLauncher
+        val canStartSwipe =
+            launcher.dashboardMode &&
+                !launcher.mapFullscreen &&
+                !launcher.isLayoutTransitioning() &&
+                (if (launcher.dockAtBottom) py < launcher.appHeightPx else px >= launcher.dockWidthPx)
+        when (
+            dashboardSwipe.update(
+                contact.slot,
+                contact.down,
+                px.toFloat(),
+                py.toFloat(),
+                canStartSwipe,
+                maxOf(48f, minOf(launcher.streamWidthPx, launcher.streamHeightPx) * 0.10f),
+            )
+        ) {
+            DashboardSwipeGesture.Result.TRIGGER -> {
+                cancelMapTileTap()
+                tapDragSlot = -1
+                dashboardMapGesture = false
+                if (pressed) runCatching { CarInputClient.service?.pointerUp(pressedDisplay, 0, 0) }
+                pressed = false
+                pressedDisplay = -1
+                logSink?.invoke("LAUNCHER: 仪表盘左滑 → 应用页")
+                Bg.run("dashboard-swipe") { launcher.showDesktop() }
+                return
+            }
+            DashboardSwipeGesture.Result.CONSUME -> return
+            DashboardSwipeGesture.Result.NONE -> Unit
+        }
+        if (launcher.isLayoutTransitioning()) {
+            if (!contact.down) {
+                if (pressed) runCatching { CarInputClient.service?.pointerUp(pressedDisplay, 0, 0) }
+                pressed = false
+                pressedDisplay = -1
+                dashboardMapGesture = false
+                tapDragSlot = -1
+                cancelMapTileTap()
+            }
+            return
+        }
+        if (launcher.dashboardMode && !launcher.mapFullscreen && !(pressed && pressedDisplay == launcher.mediaDisplayId)) {
+            val inTile =
+                dashboardTouchArea(launcher.mapPaneBounds(), launcher.mediaPaneBounds(), px.toFloat(), py.toFloat()) ==
+                    DashboardTouchArea.MAP
+            if ((inTile && !pressed) || dashboardMapGesture) {
+                dashboardMapGesture = contact.down
+                updateMapTileTap(launcher, contact, inTile, px)
+                return
+            }
+        }
+        // 动画期间不把静态坐标注入正在移动的画面；首帧后可正常操作。
+        if (launcher.isLayoutTransitioning()) return
         val dockW = launcher.dockWidthPx
         if (dockW <= 0 || launcher.appDisplayId < 0 || launcher.dockDisplayId < 0) return
         var svc = CarInputClient.service
@@ -166,7 +233,7 @@ object TouchRouter {
             // tile 矩形 py ∈ [CARD_MARGIN_PX, +mapTileHeight]，屏内 y = py-边距（顶边距扣除）
             if (!inDock &&
                 launcher.mapDisplayId >= 0 &&
-                (launcher.mapFullscreen || launcher.dashboardMode) &&
+                launcher.mapFullscreen &&
                 launcher.tileSlideFraction <= 0.01f &&
                 px < launcher.appAreaWidth &&
                 (
@@ -189,7 +256,7 @@ object TouchRouter {
             inDock = px < dockW
             if (!inDock &&
                 launcher.mapDisplayId >= 0 &&
-                (launcher.mapFullscreen || launcher.dashboardMode) &&
+                launcher.mapFullscreen &&
                 launcher.tileSlideFraction <= 0.01f
             ) {
                 val tileX = px - dockW
@@ -209,6 +276,17 @@ object TouchRouter {
                 val scale = if (inDock) 1f else launcher.activeAppScale().coerceAtLeast(1f)
                 localX = if (inDock) px else ((px - dockW) * scale).toInt()
                 localY = (py * scale).toInt()
+            }
+        }
+        if (launcher.isMediaPaneVisible()) {
+            val pane = launcher.mediaAppBounds()
+            if (pane.contains(px.toFloat(), py.toFloat()) ||
+                (pressed && pressedDisplay == launcher.mediaDisplayId)
+            ) {
+                inDock = false
+                targetDisplay = launcher.mediaDisplayId
+                localX = (px - pane.left).toInt().coerceIn(0, pane.width - 1)
+                localY = (py - pane.top).toInt().coerceIn(0, pane.height - 1)
             }
         }
         if (targetDisplay < 0) {
@@ -298,6 +376,11 @@ object TouchRouter {
         pressedDisplay = -1
         overlayPressed = false
         splitHandlePressed = false
+        dashboardMapGesture = false
+        dashboardSwipe.reset()
+        touchReleases.reset()
+        io.github.shaonialife.cardeck.launcher.MediaReturnControl
+            .reset()
         cancelMapTileTap()
         tapDragSlot = -1
         coordScaleX = 1f
@@ -309,7 +392,7 @@ object TouchRouter {
     // （确认窗规避地图双击缩放误触）。拖动/拖出 tile/双指等地图手势不触发。
     private const val TAP_MAX_MS = 400L
     private const val TAP_MAX_MOVE_PX = 30
-    private const val TAP_CONFIRM_MS = 300L
+    private const val TAP_CONFIRM_MS = 0L
     private val tapHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var tapArmSlot = -1
 

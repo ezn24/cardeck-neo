@@ -153,7 +153,11 @@ class AudioSender(
     val isRunning: Boolean get() = running.get()
 
     /** 静音前的手机媒体音量 index（-1 = 未静音）。 */
+    private var systemAudioInput: java.io.InputStream? = null
+    private var systemAudioService: io.github.shaonialife.cardeck.shizuku.ICarInput? = null
     private var mutedOriginalVolume = -1
+    private var silenceSince = 0L
+    private var volumeRecoveryAttempted = false
 
     /**
      * 静音手机媒体输出：音频通道激活后声音只从车机出（真 CarPlay 行为）。
@@ -230,9 +234,11 @@ class AudioSender(
      * 启动音频发送。需要 MediaProjection（AudioPlaybackCapture 的授权来源）。
      * 返回是否成功进入采集循环。
      */
-    fun start(projection: MediaProjection): Boolean {
+    fun start(projection: MediaProjection?): Boolean {
         if (running.get()) return true
         stopped.set(false)
+        silenceSince = 0L
+        volumeRecoveryAttempted = false
         return try {
             val client = DatagramSocket()
             client.connect(InetAddress.getByName(host), dataPort)
@@ -249,33 +255,54 @@ class AudioSender(
                 aacEncoder = encoder
             }
 
-            val captureConfig = buildCaptureConfig(projection)
-            val audioFormat =
-                AudioFormat
-                    .Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
-                    .build()
-            val recorder =
-                AudioRecord
-                    .Builder()
-                    .setAudioPlaybackCaptureConfig(captureConfig)
-                    .setAudioFormat(audioFormat)
-                    .setBufferSizeInBytes(framePcmBytes * 8)
-                    .build()
-            if (recorder.state != AudioRecord.STATE_INITIALIZED) {
-                log("AUDIO: AudioRecord 初始化失败（state=${recorder.state}）")
-                runCatching { recorder.release() }
-                aacEncoder?.stop()
-                aacEncoder = null
-                client.close()
-                socket = null
-                return false
+            val service = io.github.shaonialife.cardeck.shizuku.CarInputClient.service
+            val pipe =
+                runCatching { service?.startAudioCapture(sampleRate, CHANNELS) }
+                    .onFailure { log("AUDIO: 系统输出采集不可用：${it.message}；尝试播放捕获") }
+                    .getOrNull()
+            if (pipe != null) {
+                systemAudioInput = android.os.ParcelFileDescriptor.AutoCloseInputStream(pipe)
+                systemAudioService = service
+                log("AUDIO: 使用 Shizuku 系统输出采集（REMOTE_SUBMIX，不采集麦克风）")
+            } else {
+                val captureConfig = buildCaptureConfig(requireNotNull(projection) { "系统采集不可用，且缺少投屏授权" })
+                val audioFormat =
+                    AudioFormat
+                        .Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
+                        .build()
+                val recorder =
+                    AudioRecord
+                        .Builder()
+                        .setAudioPlaybackCaptureConfig(captureConfig)
+                        .setAudioFormat(audioFormat)
+                        .setBufferSizeInBytes(framePcmBytes * 8)
+                        .build()
+                if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+                    log("AUDIO: AudioRecord 初始化失败（state=${recorder.state}）")
+                    runCatching { recorder.release() }
+                    aacEncoder?.stop()
+                    aacEncoder = null
+                    client.close()
+                    socket = null
+                    return false
+                }
+                record = recorder
             }
-            record = recorder
             running.set(true)
-            mutePhoneMedia()
+            if (systemAudioInput == null &&
+                context?.let {
+                    io.github.shaonialife.cardeck.launcher.settings.DisplayPrefs
+                        .mutePhoneAudio(it)
+                } == true
+            ) {
+                mutePhoneMedia()
+            } else {
+                restorePhoneMedia()
+                log("AUDIO: 保留手机媒体音量，避免系统将播放捕获同时静音")
+            }
             log(
                 "AUDIO: 已启动（播放捕获 ${sampleRate}Hz 立体声 → $host:$dataPort，" +
                     "通路=t$streamType/${codec.name}，" +
@@ -293,7 +320,7 @@ class AudioSender(
             Thread(
                 {
                     try {
-                        recorder.startRecording()
+                        record?.startRecording()
                     } catch (error: Exception) {
                         log("AUDIO: 启动采集失败 - ${error.message}")
                         stop()
@@ -325,6 +352,10 @@ class AudioSender(
     fun stop() {
         if (!stopped.compareAndSet(false, true)) return
         running.set(false)
+        runCatching { systemAudioService?.stopAudioCapture() }
+        systemAudioService = null
+        runCatching { systemAudioInput?.close() }
+        systemAudioInput = null
         runCatching { record?.stop() }
         runCatching { record?.release() }
         record = null
@@ -407,7 +438,9 @@ class AudioSender(
     // ---- 采集循环 → 封包发送 ----
 
     private fun runCaptureLoop() {
-        val recorder = record ?: return
+        val recorder = record
+        val systemInput = systemAudioInput
+        if (recorder == null && systemInput == null) return
         val frameBytes = framePcmBytes
         val pcm = ByteArray(frameBytes)
         // 诊断抽样节拍：PCM 约 125 包/s（每 20s 一次）；AAC 约 47 帧/s
@@ -416,12 +449,17 @@ class AudioSender(
             while (running.get()) {
                 val read =
                     try {
-                        recorder.read(pcm, 0, pcm.size, AudioRecord.READ_BLOCKING)
+                        if (systemInput != null) {
+                            readPcmFrame(systemInput, pcm)
+                        } else {
+                            recorder!!.read(pcm, 0, pcm.size, AudioRecord.READ_BLOCKING)
+                        }
                     } catch (error: Exception) {
                         log("AUDIO: 采集读取异常 - ${error.message}")
                         break
                     }
                 if (read < 0) {
+                    if (systemInput != null) break
                     readFailures++
                     if (readFailures == 1 || readFailures % 100 == 0) {
                         log("AUDIO: 采集错误码 $read（连续 $readFailures 次）")
@@ -432,6 +470,27 @@ class AudioSender(
                 }
                 if (read < frameBytes) continue // 残包（缓冲尾部）：丢弃，等下一个整包
                 readFailures = 0
+                val captureNow = android.os.SystemClock.elapsedRealtime()
+                var silent = true
+                for (sampleIndex in 0 until read) {
+                    if (pcm[sampleIndex] != 0.toByte()) {
+                        silent = false
+                        break
+                    }
+                }
+                if (!silent) {
+                    silenceSince = 0L
+                } else if (silenceSince == 0L) {
+                    silenceSince = captureNow
+                }
+                if (!volumeRecoveryAttempted && mutedOriginalVolume > 0 && silent && captureNow - silenceSince >= 2000L) {
+                    val manager = context?.getSystemService(android.media.AudioManager::class.java)
+                    if (manager?.isMusicActive == true) {
+                        volumeRecoveryAttempted = true
+                        restorePhoneMedia()
+                        log("AUDIO: 播放中持续采集全零，已恢复手机音量；若仍无声，请检查来源应用是否允许播放捕获")
+                    }
+                }
 
                 // 内容诊断（2026-10-17）：播放捕获可能拿到全零（app 禁止捕获 / 音频路由
                 // 到蓝牙 / 无音频播放）。全零时车机静音但手机仍在响，用户会报「声音在

@@ -190,7 +190,7 @@ object LetterboxHintController {
                     Thread.sleep(600)
                     val start =
                         Shell.exec(
-                            "am start -n ${activity.component} --display $displayId -f 0x18000000",
+                            "am start -n ${activity.component.asShellArgument()} --display $displayId -f 0x18000000",
                             timeoutMs = 8_000,
                         )
                     VirtualLauncher.logSink?.invoke(
@@ -341,7 +341,7 @@ object LetterboxHintController {
                 Thread.sleep(400)
                 val start =
                     Shell.exec(
-                        "am start -n ${t.component} --display ${t.displayId} -f 0x18000000",
+                        "am start -n ${t.component.asShellArgument()} --display ${t.displayId} -f 0x18000000",
                         timeoutMs = 8_000,
                     )
                 if (!start.ok) {

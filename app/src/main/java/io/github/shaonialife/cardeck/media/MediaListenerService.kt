@@ -23,6 +23,16 @@ class MediaListenerService : NotificationListenerService() {
         fun componentName(context: android.content.Context): ComponentName = ComponentName(context, MediaListenerService::class.java)
     }
 
+    override fun onNotificationPosted(sbn: android.service.notification.StatusBarNotification) {
+        io.github.shaonialife.cardeck.notifications.NotificationBannerController
+            .post(this, sbn)
+    }
+
+    override fun onNotificationRemoved(sbn: android.service.notification.StatusBarNotification) {
+        io.github.shaonialife.cardeck.notifications.NotificationBannerController
+            .remove(sbn.key)
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         // 已连上即代表系统认可本应用的通知使用权（此时 metadata 才会可读）。
