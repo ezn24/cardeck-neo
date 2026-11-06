@@ -153,7 +153,7 @@
     <string name="choose_other_map" formatted="false">Choose another installed app…</string>
     <string name="language" formatted="false">Language</string>
     <string name="follow_system" formatted="false">System default</string>
-    <string name="dashboard_layout_note" formatted="false">Dashboard uses a fixed 3:1 map and media layout. Use Playback controls above the music app to return to its card. Dock Home slides between apps and dashboard; swiping cannot switch modes.</string>
+    <string name="dashboard_layout_note" formatted="false">The map and media panes keep their 3:1 split.</string>
     <string name="screen_001" formatted="false">Bluetooth handshake → Join car Wi-Fi → Start CarPlay</string>
     <string name="screen_002" formatted="false">Wallpaper updated</string>
     <string name="screen_003" formatted="false">Could not save</string>

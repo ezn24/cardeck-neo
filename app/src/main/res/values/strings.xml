@@ -153,7 +153,7 @@
     <string name="choose_other_map" formatted="false">选择其他已安装应用…</string>
     <string name="language" formatted="false">语言</string>
     <string name="follow_system" formatted="false">跟随系统</string>
-    <string name="dashboard_layout_note" formatted="false">仪表盘固定为地图 3/4、媒体 1/4。媒体 App 顶部的「返回播放控制」回到控制卡；Dock 主页按钮以整页滑动动画切换应用页与仪表盘，不支持手势跨模式翻页。</string>
+    <string name="dashboard_layout_note" formatted="false">地图与媒体保持 3:1 分屏比例。</string>
     <string name="screen_001" formatted="false">蓝牙 iAP2 握手 → 加入车机热点 → 建立 CarPlay 会话</string>
     <string name="screen_002" formatted="false">壁纸已更新</string>
     <string name="screen_003" formatted="false">保存失败</string>

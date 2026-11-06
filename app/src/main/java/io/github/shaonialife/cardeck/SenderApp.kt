@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
 import io.github.shaonialife.cardeck.launcher.VirtualLauncher
+import io.github.shaonialife.cardeck.ui.ScreenDimmer
 import io.github.shaonialife.cardeck.ui.UiStrings
 import io.github.shaonialife.cardeck.util.DebugFileLog
 
@@ -19,6 +20,10 @@ import io.github.shaonialife.cardeck.util.DebugFileLog
 open class SenderApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Retry pending restoration after process restart or Shizuku reconnect.
+        rikka.shizuku.Shizuku.addBinderReceivedListenerSticky {
+            ScreenDimmer.syncScreenTimeout(this)
+        }
         UiStrings
             .initialize(this)
         io.github.shaonialife.cardeck.ui.AppLanguage

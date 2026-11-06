@@ -795,111 +795,84 @@ class DisplayPanelFragment : SettingsPanelFragment() {
         savedInstanceState: Bundle?,
     ): View = inflater.inflate(R.layout.fragment_panel_display, container, false)
 
+    private fun bindDisplayToggle(
+        row: View,
+        title: Int,
+        note: Int,
+        initial: Boolean,
+        onChange: (Boolean) -> Unit,
+    ) {
+        row.findViewById<TextView>(R.id.displayToggleTitle).setText(title)
+        row.findViewById<TextView>(R.id.displayToggleNote).setText(note)
+        val on = row.findViewById<TextView>(R.id.displayToggleOn)
+        val off = row.findViewById<TextView>(R.id.displayToggleOff)
+        var current = initial
+
+        fun render() {
+            for ((button, selected) in listOf(on to current, off to !current)) {
+                button.isSelected = selected
+                button.setBackgroundResource(if (selected) R.drawable.bg_segment_sel else R.drawable.bg_segment)
+                button.setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFF8E8E93.toInt())
+            }
+        }
+
+        fun select(value: Boolean) {
+            if (current == value) return
+            onChange(value)
+            current = value
+            render()
+        }
+
+        on.setOnClickListener { select(true) }
+        off.setOnClickListener { select(false) }
+        render()
+    }
+
     override fun onViewCreated(view: View) {
         val ctx = requireContext()
-        val content = (view as android.widget.ScrollView).getChildAt(0) as LinearLayout
-        content.addView(
-            TextView(ctx).apply {
-                setText(R.string.language)
-                textSize = 16f
-                setTextColor(0xFFF5F5F7.toInt())
-            },
-            0,
-        )
-        content.addView(
-            android.widget.Spinner(ctx).apply {
-                val tags = listOf("", "zh-Hant", "zh-Hans", "en")
-                adapter =
-                    android.widget.ArrayAdapter(
-                        ctx,
-                        android.R.layout.simple_spinner_dropdown_item,
-                        listOf(getString(R.string.follow_system), "繁體中文", "简体中文", "English"),
-                    )
-                setSelection(
-                    tags
-                        .indexOf(
+        val languageTags = listOf("", "zh-Hant", "zh-Hans", "en")
+        val languageNames = arrayOf(getString(R.string.follow_system), "繁體中文", "简体中文", "English")
+        val currentLanguage =
+            languageTags
+                .indexOf(
+                    io.github.shaonialife.cardeck.ui.AppLanguage
+                        .current(ctx),
+                ).coerceAtLeast(0)
+        view.findViewById<TextView>(R.id.displayLanguagePicker).apply {
+            text = languageNames[currentLanguage]
+            setOnClickListener {
+                androidx.appcompat.app.AlertDialog
+                    .Builder(ctx, R.style.CarDeckAppPicker)
+                    .setTitle(R.string.language)
+                    .setSingleChoiceItems(languageNames, currentLanguage) { dialog, index ->
+                        dialog.dismiss()
+                        if (index != currentLanguage) {
                             io.github.shaonialife.cardeck.ui.AppLanguage
-                                .current(ctx),
-                        ).coerceAtLeast(0),
-                )
-                onItemSelectedListener =
-                    object : android.widget.AdapterView.OnItemSelectedListener {
-                        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-
-                        override fun onItemSelected(
-                            parent: android.widget.AdapterView<*>?,
-                            selected: View?,
-                            position: Int,
-                            id: Long,
-                        ) {
-                            val tag = tags[position]
-                            if (tag !=
-                                io.github.shaonialife.cardeck.ui.AppLanguage
-                                    .current(ctx)
-                            ) {
-                                io.github.shaonialife.cardeck.ui.AppLanguage
-                                    .set(ctx, tag)
-                            }
+                                .set(ctx, languageTags[index])
                         }
-                    }
-            },
-            1,
-        )
-        content.addView(
-            TextView(ctx).apply {
-                setText(R.string.dashboard_layout_note)
-                textSize = 13f
-                setTextColor(0xFF8E8E93.toInt())
-                setPadding(0, 12, 0, 18)
-            },
-            2,
-        )
-        content.addView(
-            androidx.appcompat.widget.SwitchCompat(ctx).apply {
-                setText(R.string.mute_phone_audio)
-                setTextColor(0xFFF5F5F7.toInt())
-                isChecked = DisplayPrefs.mutePhoneAudio(ctx)
-                setOnCheckedChangeListener { _, checked -> DisplayPrefs.setMutePhoneAudio(ctx, checked) }
-            },
-            3,
-        )
-        content.addView(
-            TextView(ctx).apply {
-                setText(R.string.mute_phone_audio_note)
-                textSize = 12f
-                setTextColor(0xFF8E8E93.toInt())
-            },
-            4,
-        )
-        content.addView(
-            androidx.appcompat.widget.SwitchCompat(ctx).apply {
-                setText(R.string.swap_dashboard_panes)
-                setTextColor(0xFFF5F5F7.toInt())
-                isChecked =
-                    ctx
-                        .getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                        .getBoolean("dashboardPanesSwapped", false)
-                setOnCheckedChangeListener { _, checked -> VirtualLauncher.setDashboardPanesSwapped(ctx, checked) }
-            },
-            3,
-        )
-        content.addView(
-            androidx.appcompat.widget.SwitchCompat(ctx).apply {
-                setText(R.string.show_car_notifications)
-                setTextColor(0xFFF5F5F7.toInt())
-                isChecked = DisplayPrefs.showCarNotifications(ctx)
-                setOnCheckedChangeListener { _, enabled -> DisplayPrefs.setShowCarNotifications(ctx, enabled) }
-            },
-            3,
-        )
-        content.addView(
-            TextView(ctx).apply {
-                setText(R.string.car_notifications_note)
-                textSize = 12f
-                setTextColor(0xFF8E8E93.toInt())
-            },
-            4,
-        )
+                    }.show()
+            }
+        }
+
+        bindDisplayToggle(
+            view.findViewById(R.id.displaySwapPanes),
+            R.string.swap_dashboard_panes,
+            R.string.dashboard_layout_note,
+            ctx.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE).getBoolean("dashboardPanesSwapped", false),
+        ) { VirtualLauncher.setDashboardPanesSwapped(ctx, it) }
+        bindDisplayToggle(
+            view.findViewById(R.id.displayCarNotifications),
+            R.string.show_car_notifications,
+            R.string.car_notifications_note,
+            DisplayPrefs.showCarNotifications(ctx),
+        ) { DisplayPrefs.setShowCarNotifications(ctx, it) }
+        bindDisplayToggle(
+            view.findViewById(R.id.displayMutePhoneAudio),
+            R.string.mute_phone_audio,
+            R.string.mute_phone_audio_note,
+            DisplayPrefs.mutePhoneAudio(ctx),
+        ) { DisplayPrefs.setMutePhoneAudio(ctx, it) }
+
         val scaleSeek = view.findViewById<SeekBar>(R.id.displayScaleSeek)
         val scaleValue = view.findViewById<TextView>(R.id.displayScaleValue)
         val scaleNote = view.findViewById<TextView>(R.id.displayScaleNote)

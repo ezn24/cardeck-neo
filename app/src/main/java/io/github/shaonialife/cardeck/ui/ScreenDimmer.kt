@@ -46,7 +46,16 @@ object ScreenDimmer {
     @Volatile
     var autoDimAllowed: Boolean = true
 
+    @Volatile
     private var appContext: Context? = null
+
+    @Volatile
+    private var manualDimActive = false
+
+    private val timeoutExecutor =
+        java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+            Thread(task, "screen-timeout").apply { isDaemon = true }
+        }
     private var windowManager: WindowManager? = null
     private var handler: Handler? = null
     private var dimView: View? = null
@@ -87,16 +96,17 @@ object ScreenDimmer {
         val h = handler
         if (active) {
             if (!enabled) return
-            enableStayAwake(ctx)
+            syncScreenTimeout(ctx)
             h?.post { schedule() }
             Log.i("CarPlaySender", "DIMMER: 会话开始——常亮/自动暗幕生效（${IDLE_TIMEOUT_MS / 1000}s 无操作后变暗）")
         } else {
             h?.removeCallbacks(showRunnable)
+            manualDimActive = false
             // 会话结束时如果暗幕正盖着（车机自己断开），立即撤掉，让用户看到手机正常界面
             h?.post { hideDim() }
             restorePanelIfNeeded()
-            restoreTimeout(ctx)
-            Log.i("CarPlaySender", "DIMMER: 会话结束——自动暗幕已停、屏幕超时已恢复")
+            syncScreenTimeout(ctx)
+            Log.i("CarPlaySender", "DIMMER: 会话结束——自动暗幕已停、已排程恢复屏幕超时")
         }
     }
 
@@ -104,7 +114,7 @@ object ScreenDimmer {
         if (appContext != null) {
             // 已附着：本次若为「启用」切换，补齐常亮与自动计时（触摸探针此前已挂）
             if (enabled && sessionActive) {
-                enableStayAwake(context)
+                syncScreenTimeout(context)
                 handler?.post { schedule() }
             }
             return
@@ -121,7 +131,7 @@ object ScreenDimmer {
         handler = Handler(Looper.getMainLooper())
         // 常亮只在会话期间打开：应用启动时 attach 不把屏幕超时改成「永不」，
         // 否则未连接时手机也永不熄屏（车机断开后同样收不回来）。
-        if (enabled && sessionActive) enableStayAwake(context)
+        if (enabled && sessionActive) syncScreenTimeout(context)
         handler?.post {
             addWatcher()
             registerScreenOffReceiver(context)
@@ -140,7 +150,7 @@ object ScreenDimmer {
     fun disableDim() {
         enabled = false
         val ctx = appContext ?: return
-        restoreTimeout(ctx)
+        syncScreenTimeout(ctx)
         handler?.removeCallbacks(showRunnable)
         handler?.post { hideDim() }
         restorePanelIfNeeded()
@@ -165,6 +175,7 @@ object ScreenDimmer {
         // 会话标记必须一并清零：否则下次 attach（未连接时启动 App）会沿用上一轮的
         // true 而立即排程，又变回「没会话也自动变暗」的老问题。
         sessionActive = false
+        manualDimActive = false
         restorePanelIfNeeded()
         appContext?.let { unregisterScreenOffReceiver(it) }
         h?.removeCallbacksAndMessages(null)
@@ -181,8 +192,8 @@ object ScreenDimmer {
         }
         val ctx = appContext
         appContext = null
-        if (ctx != null) restoreTimeout(ctx)
-        Log.i("CarPlaySender", "DIMMER: 已停止（屏幕超时恢复）")
+        if (ctx != null) syncScreenTimeout(ctx)
+        Log.i("CarPlaySender", "DIMMER: 已停止（排程恢复屏幕超时）")
     }
 
     /** 暗幕是否已就绪（attach 完成且具备悬浮窗能力）。 */
@@ -198,8 +209,6 @@ object ScreenDimmer {
             windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             h.post { addWatcher() }
         }
-        // 手动假息屏要有意义，屏幕必须保持常亮（否则真睡下去就没法「点击恢复」）
-        appContext?.let { if (enabled) enableStayAwake(it) }
         h.post { showDim(force = true) }
     }
 
@@ -256,6 +265,10 @@ object ScreenDimmer {
             .onSuccess {
                 dimView = view
                 dimShown = true
+                if (force && !sessionActive) {
+                    manualDimActive = true
+                    syncScreenTimeout(ctx)
+                }
                 Log.i("CarPlaySender", "DIMMER: 暗幕已显示")
                 // 真·假息屏：暗幕上好后直接断物理屏电源。系统保持交互态（常亮超时已设
                 // 为永不，不会真睡下去），虚拟屏完全不受影响；触摸经探针唤醒。
@@ -267,6 +280,10 @@ object ScreenDimmer {
         val view = dimView ?: return
         dimView = null
         dimShown = false
+        if (manualDimActive) {
+            manualDimActive = false
+            appContext?.let(::syncScreenTimeout)
+        }
         runCatching { windowManager?.removeView(view) }
     }
 
@@ -401,37 +418,47 @@ object ScreenDimmer {
         screenOffReceiver = null
     }
 
-    // ---- 屏幕常亮：改系统屏幕超时为永不，断开时恢复 ----
+    private const val TIMEOUT_BACKUP = "screen_off_timeout_backup"
 
-    private fun enableStayAwake(ctx: Context) {
-        Bg.run("dimmer-stayawake") {
-            val current =
-                Shell
-                    .exec("settings get system screen_off_timeout")
-                    .output
-                    .trim()
-                    .toIntOrNull()
+    /** Serialize system writes and retain the original timeout until it is safe to clear. */
+    fun syncScreenTimeout(context: Context) {
+        val ctx = context.applicationContext
+        timeoutExecutor.execute {
+            val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val keepAwake = enabled && appContext != null && (sessionActive || manualDimActive)
+            val hasBackup = prefs.contains(TIMEOUT_BACKUP)
+            if (!keepAwake && !hasBackup) return@execute
+
+            val current = readScreenTimeout()
             if (current == null) {
-                Log.w(TAG, "读取屏幕超时失败（Shizuku 未就绪？）")
-                return@run
+                Log.w(TAG, "读取屏幕超时失败，保留待恢复记录")
+                return@execute
             }
-            val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            if (current < TIMEOUT_MAX && !prefs.contains("screen_off_timeout_backup")) {
-                prefs.edit().putInt("screen_off_timeout_backup", current).apply()
+
+            if (keepAwake) {
+                if (current == TIMEOUT_MAX) return@execute
+                if (!prefs.edit().putInt(TIMEOUT_BACKUP, current).commit()) {
+                    Log.w(TAG, "无法保存原屏幕超时，跳过常亮")
+                    return@execute
+                }
+                val result = Shell.exec("settings put system screen_off_timeout $TIMEOUT_MAX")
+                if (!result.ok) Log.w(TAG, "设置常亮失败")
+            } else {
+                val backup = prefs.getInt(TIMEOUT_BACKUP, 60_000)
+                // If the timeout changed outside CarDeck, keep the user's new setting.
+                if (current == TIMEOUT_MAX &&
+                    (!Shell.exec("settings put system screen_off_timeout $backup").ok || readScreenTimeout() != backup)
+                ) {
+                    Log.w(TAG, "恢复屏幕超时失败，Shizuku 重新可用后重试")
+                    return@execute
+                }
+                prefs.edit().remove(TIMEOUT_BACKUP).commit()
             }
-            Shell.exec("settings put system screen_off_timeout $TIMEOUT_MAX")
-            Log.i("CarPlaySender", "DIMMER: 屏幕超时设为永不（原值 $current）")
         }
     }
 
-    private fun restoreTimeout(ctx: Context) {
-        Bg.run("dimmer-restore") {
-            val prefs = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            if (!prefs.contains("screen_off_timeout_backup")) return@run
-            val backup = prefs.getInt("screen_off_timeout_backup", 60_000)
-            prefs.edit().remove("screen_off_timeout_backup").apply()
-            Shell.exec("settings put system screen_off_timeout $backup")
-            Log.i("CarPlaySender", "DIMMER: 屏幕超时恢复为 $backup")
+    private fun readScreenTimeout(): Int? =
+        Shell.exec("settings get system screen_off_timeout").let { result ->
+            if (result.ok) result.output.trim().toIntOrNull() else null
         }
-    }
 }

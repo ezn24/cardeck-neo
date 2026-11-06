@@ -718,22 +718,6 @@ class MainActivity : AppCompatActivity() {
             scrollConsoleToBottom()
         }
 
-        // 进程重启兜底：若上次会话未正常退役，「常亮」改过的屏幕超时需要恢复
-        run {
-            val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
-            if (prefs.contains("screen_off_timeout_backup") &&
-                VirtualLauncher.appDisplayId < 0
-            ) {
-                val backup = prefs.getInt("screen_off_timeout_backup", 60_000)
-                prefs.edit().remove("screen_off_timeout_backup").apply()
-                Bg.run("screen-timeout-restore") {
-                    Shell.exec(
-                        "settings put system screen_off_timeout $backup",
-                    )
-                }
-            }
-        }
-
         // Shizuku 授权结果：状态行与英雄卡副标题立即刷新；若用户是被「请求授权」引导
         // 过来的（pendingShizukuThenConnect），授权成功后直接接着走音频选择，不用再点一次。
         shizukuPermissionListener =
@@ -743,6 +727,7 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         if (isFinishing || isDestroyed) return@runOnUiThread
                         val granted = grantResult == PackageManager.PERMISSION_GRANTED
+                        if (granted) ScreenDimmer.syncScreenTimeout(applicationContext)
                         log("SHIZUKU: 授权结果 granted=$granted")
                         updateReadyRow()
                         updateShizukuChip()

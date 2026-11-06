@@ -19,6 +19,34 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/language"
+            android:textColor="#FFF5F5F7"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/displayLanguagePicker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_app_row"
+            android:drawableEnd="@drawable/ic_chevron_right"
+            android:drawablePadding="10dp"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:padding="12dp"
+            android:textColor="#FFF5F5F7"
+            android:textSize="14sp" />
+
+        <include android:id="@+id/displaySwapPanes" layout="@layout/item_display_toggle" />
+
+        <include android:id="@+id/displayCarNotifications" layout="@layout/item_display_toggle" />
+
+        <include android:id="@+id/displayMutePhoneAudio" layout="@layout/item_display_toggle" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="11dp"
             android:text="@string/ui_083"
